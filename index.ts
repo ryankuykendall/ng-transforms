@@ -31,7 +31,7 @@ const printer: ts.Printer = ts.createPrinter({
 
 enum NgAstSelector {
   ComponentDecoratorContainingTemplateUrl = "ClassDeclaration Decorator:has(Identifier[name='Component']) PropertyAssignment:has(Identifier[name='templateUrl']) StringLiteral",
-  ComponentDecoratorContainingStyleUrls = "ClassDeclaration Decorator:has(Identifier[name='Component']) PropertyAssignment:has(Identifier[name='templateUrl']) StringLiteral",
+  ComponentDecoratorContainingStyleUrls = "ClassDeclaration Decorator:has(Identifier[name='Component']) PropertyAssignment:has(Identifier[name='styleUrls']) StringLiteral",
   // For the following, would still need to backtrack to ImportDeclaration
   NgImportComponentDecoratorFromCore = "ImportDeclaration:has(ImportClause:has(NamedImports ImportSpecifier Identifier[name='Component'])) StringLiteral[value=/@angular/][value=/core/]",
 }
@@ -121,7 +121,7 @@ program
       console.log("\n\n", chalk.blue.bold(`Processing file`), filepath);
       matches.forEach((node: ts.Node, index) => {
         while(ancestor && node.parent && ts.SyntaxKind[node.kind] != ancestor) {
-          console.log(" - Going to parent", ancestor, ts.SyntaxKind[node.parent.kind]);
+          // console.log(" - Going to parent", ancestor, ts.SyntaxKind[node.parent.kind]);
           node = node.parent;
         }
         dumpASTNode(node, index);
@@ -225,7 +225,7 @@ program
     const componentDecoratorImportMatches = findFilesWithASTMatchingSelector(
       tsFiles, NgAstSelector.NgImportComponentDecoratorFromCore);
 
-    componentDecoratorImportMatches.forEach(({source}) => {
+    componentDecoratorImportMatches.forEach(({filepath, source}) => {
       let result = ts.transpileModule(source, {
         compilerOptions: {
           /* module: ts.ModuleKind.UMD, */
@@ -233,11 +233,12 @@ program
         },
         transformers: {before: [
           ct.importViewEncapsulationFromAngularCoreTransformer(),
-          ct.addViewEncapsulationToComponentDecoratorTransformer()
+          ct.addViewEncapsulationShadowDomToComponentDecoratorTransformer()
         ]}
       });
 
-      console.log(chalk.red.bold('Transform result'), result.outputText);
+      console.log(chalk.red.bold('Transform result for'), filepath);
+      console.log(result.outputText);
     });
 
     // See "Creating and Printing a TypeScript AST" here:

@@ -67,6 +67,7 @@ const ANGULAR_CORE_MODULE_SPECIFIER = `'@angular/core'`;
 const ANGULAR_CORE_MODULE_VIEW_ENCAPSULATION_ENUM = 'ViewEncapsulation';
 const ANGULAR_CORE_MODULE_VIEW_ENCAPSULATION_ENUM_VALUE_SHADOW_DOM = 'ShadowDom';
 
+// TODO: Ensure that ViewEncapsulation is not already imported before mutating
 export function importViewEncapsulationFromAngularCoreTransformer<T extends ts.Node>(): ts.TransformerFactory<T> {
   return (context) => {
     const visit: ts.Visitor = (node) => {
@@ -74,19 +75,26 @@ export function importViewEncapsulationFromAngularCoreTransformer<T extends ts.N
 
       if (ts.isImportDeclaration(node) &&
         node.moduleSpecifier.getFullText().trim() == ANGULAR_CORE_MODULE_SPECIFIER) {
-        const workingNode = ts.getMutableClone(node) as ts.ImportDeclaration;
-        const importClause = workingNode.importClause;
+        workingNode = ts.getMutableClone(node);
+        const importClause = (workingNode as ts.ImportDeclaration).importClause;
         if (importClause && ts.isImportClause(importClause)) {
           const namedImports = importClause.namedBindings as ts.NamedImports;
+        
           if (namedImports && ts.isNamedImports(namedImports)) {
-            const veImportSpecifier = ts.createImportSpecifier(
-              undefined, /** For casting using 'as' */
-              ts.createIdentifier(ANGULAR_CORE_MODULE_VIEW_ENCAPSULATION_ENUM)
-            );
-
-            importClause.namedBindings = ts.createNamedImports(
-              [...(Array.from(namedImports.elements) as ts.ImportSpecifier[]), 
-              veImportSpecifier] as ReadonlyArray<ts.ImportSpecifier>);
+            const allImportSpecifiers = namedImports.elements.
+            map(child => child.name.escapedText as string);
+            
+            if (!allImportSpecifiers.includes(
+                ANGULAR_CORE_MODULE_VIEW_ENCAPSULATION_ENUM)) {
+              const veImportSpecifier = ts.createImportSpecifier(
+                undefined, /** For casting using 'as' */
+                ts.createIdentifier(ANGULAR_CORE_MODULE_VIEW_ENCAPSULATION_ENUM)
+              );
+  
+              importClause.namedBindings = ts.createNamedImports(
+                [...(Array.from(namedImports.elements) as ts.ImportSpecifier[]), 
+                veImportSpecifier] as ReadonlyArray<ts.ImportSpecifier>);
+            }
           }
         }
       }
@@ -99,7 +107,8 @@ export function importViewEncapsulationFromAngularCoreTransformer<T extends ts.N
   };
 };
 
-export function addViewEncapsulationToComponentDecoratorTransformer<T extends ts.Node>(): ts.TransformerFactory<T> {
+// TODO: Ensure that ViewEncapsulation is not already set in the Component decorator.
+export function addViewEncapsulationShadowDomToComponentDecoratorTransformer<T extends ts.Node>(): ts.TransformerFactory<T> {
   return (context) => {
     const visit: ts.Visitor = (node) => {
       let workingNode = node;

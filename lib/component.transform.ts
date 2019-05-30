@@ -1,20 +1,20 @@
-import ts, { ImportSpecifier, createNodeArray, createStatement } from 'typescript';
+import ts, { ImportSpecifier, createNodeArray, createStatement, isObjectLiteralExpression } from 'typescript';
 import { tsquery } from '@phenomnomnominal/tsquery';
 
-export function importViewEncapsulationFromAngularCore<T extends ts.Node>(): ts.TransformerFactory<T> {
-  return (context) => {
-    const visit: ts.Visitor = (node) => {
-      if (ts.isDecorator(node)) {
-        return undefined;
-      }
-      return ts.visitEachChild(node, (child) => visit(child), context);
-    };
+/* Helpers 
+   TODO: Move these into a separate library (will want to create more of these.)
+*/
+const objectLiteralKeys = (obj: ts.ObjectLiteralExpression):string[] => {
+  return obj.properties.map(prop => (prop.name as ts.Identifier).escapedText as string);
+};
 
-    return (node) => ts.visitNode(node, visit);
-  };
-}
+const objectLiteralRemoveProperty = (props: ts.ObjectLiteralElementLike[], key: string):ts.ObjectLiteralElementLike[] => {
+  return props.filter(prop => {
+    return (prop.name as ts.Identifier).escapedText as string !== key;
+  });
+};
 
-
+/* Basic Example */
 function simpleTransformer<T extends ts.Node>(): ts.TransformerFactory<T> {
   return (context) => {
     const visit: ts.Visitor = (node) => {
@@ -28,6 +28,7 @@ function simpleTransformer<T extends ts.Node>(): ts.TransformerFactory<T> {
   };
 }
 
+/* Complex Example */
 function complexTransformer<T extends ts.Node>(): ts.TransformerFactory<T> {
   return (context) => {
     const visit: ts.Visitor = (node) => {
@@ -66,6 +67,7 @@ const ANGULAR_CORE_MODULE_SPECIFIER = `'@angular/core'`;
 // Question on these: Should I just be importing these directly?
 const ANGULAR_CORE_MODULE_VIEW_ENCAPSULATION_ENUM = 'ViewEncapsulation';
 const ANGULAR_CORE_MODULE_VIEW_ENCAPSULATION_ENUM_VALUE_SHADOW_DOM = 'ShadowDom';
+const ANGULAR_COMPONENT_DECORATOR_ENCAPSULATION_PROPERTY_NAME =  'encapsulation';
 
 // TODO: Ensure that ViewEncapsulation is not already imported before mutating
 export function importViewEncapsulationFromAngularCoreTransformer<T extends ts.Node>(): ts.TransformerFactory<T> {
@@ -130,8 +132,19 @@ export function addViewEncapsulationShadowDomToComponentDecoratorTransformer<T e
               ts.createIdentifier('ShadowDom')
             );
 
-          const encapsulationProperty = ts.createPropertyAssignment('encapsulation', statement);
-          const properties = [...Array.from(objLiteralExpression.properties), encapsulationProperty];
+          const encapsulationProperty = ts.createPropertyAssignment(
+            ANGULAR_COMPONENT_DECORATOR_ENCAPSULATION_PROPERTY_NAME, statement);
+          const propertyKeys = objectLiteralKeys(objLiteralExpression);
+          let properties = [...Array.from(objLiteralExpression.properties)];
+
+          // If encapsulation is already set in the decorator, remove it.
+          if (propertyKeys.includes(ANGULAR_COMPONENT_DECORATOR_ENCAPSULATION_PROPERTY_NAME)) {
+            properties = objectLiteralRemoveProperty(properties, 
+              ANGULAR_COMPONENT_DECORATOR_ENCAPSULATION_PROPERTY_NAME);
+          }
+
+          // Set the new encapsulation property.
+          properties.push(encapsulationProperty);
 
           callExpression.arguments = ts.createNodeArray(
               [ts.createObjectLiteral(properties as ReadonlyArray<ts.ObjectLiteralElementLike>)],

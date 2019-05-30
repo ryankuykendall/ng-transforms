@@ -5,10 +5,10 @@ import ts from "typescript";
 import { tsquery } from '@phenomnomnominal/tsquery';
 import * as ct from "./lib/component.transform";
 
-const chalk = require('chalk');
-const glob = require('glob');
-const fs = require('fs');
-const path = require('path');
+import chalk from 'chalk';
+import * as glob from 'glob';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const UTF8 = 'UTF-8'
 const packageJSON = JSON.parse(fs.readFileSync('package.json', UTF8));
@@ -233,7 +233,8 @@ program
         },
         transformers: {before: [
           ct.importViewEncapsulationFromAngularCoreTransformer(),
-          ct.addViewEncapsulationShadowDomToComponentDecoratorTransformer()
+          ct.addViewEncapsulationShadowDomToComponentDecoratorTransformer(),
+          ct.inlineHTMLTemplateFromFileInComponentDecoratorTransformer(filepath)
         ]}
       });
 

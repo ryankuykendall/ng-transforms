@@ -3,15 +3,17 @@
 import program from "commander";
 import ts from "typescript";
 import { tsquery } from '@phenomnomnominal/tsquery';
+
 import * as ct from "./lib/component.transform";
+import * as cdt from "./lib/transforms/components/component-decorator.transform";
+import * as fileUtil from "./lib/utils/file.util";
 
 import chalk from 'chalk';
 import * as glob from 'glob';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const UTF8 = 'UTF-8'
-const packageJSON = JSON.parse(fs.readFileSync('package.json', UTF8));
+const packageJSON = JSON.parse(fs.readFileSync('package.json', fileUtil.UTF8));
 
 const TS_NODE_BASE_ATTRS = new Set([
   // from TextRange interface
@@ -69,7 +71,7 @@ const getTypescriptFileASTsFromDirectory = (dir: string): IFileAST[] => {
 
   const tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
   return tsFiles.map((filepath: string) => {
-    const source = fs.readFileSync(filepath, UTF8);
+    const source = fs.readFileSync(filepath, fileUtil.UTF8);
     const ast = tsquery.ast(source);
     return {
       filepath,
@@ -142,7 +144,7 @@ program
 
     const tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
     tsFiles.forEach((filepath: string) => {
-      const source = fs.readFileSync(filepath, UTF8);
+      const source = fs.readFileSync(filepath, fileUtil.UTF8);
       const ast = tsquery.ast(source);
       const nodes = tsquery(ast, `ImportDeclaration`);
       nodes.forEach((node, index) => {
@@ -164,7 +166,7 @@ program
 
     const tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
     tsFiles.forEach((filepath: string) => {
-      const source = fs.readFileSync(filepath, UTF8);
+      const source = fs.readFileSync(filepath, fileUtil.UTF8);
       const ast = tsquery.ast(source);
       const nodes = tsquery(ast, `ClassDeclaration`);
       nodes.forEach((node, index) => {
@@ -192,7 +194,7 @@ program
 
     const tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
     tsFiles.forEach((filepath: string) => {
-      const source = fs.readFileSync(filepath, UTF8);
+      const source = fs.readFileSync(filepath, fileUtil.UTF8);
       const ast = tsquery.ast(source);
       const nodes = tsquery(ast, `ClassDeclaration Decorator[name.name="Component"]`);
       nodes.forEach((node, index) => {
@@ -234,7 +236,8 @@ program
         transformers: {before: [
           ct.importViewEncapsulationFromAngularCoreTransformer(),
           ct.addViewEncapsulationShadowDomToComponentDecoratorTransformer(),
-          ct.inlineHTMLTemplateFromFileInComponentDecoratorTransformer(filepath)
+          ct.inlineHTMLTemplateFromFileInComponentDecoratorTransformer(filepath),
+          cdt.inlineCSSFromFileTransformer(filepath)
         ]}
       });
 

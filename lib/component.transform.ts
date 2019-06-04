@@ -1,13 +1,9 @@
-import ts, { ImportSpecifier, createNodeArray, createStatement, isObjectLiteralExpression } from 'typescript';
-import { tsquery } from '@phenomnomnominal/tsquery';
+import ts from 'typescript';
 import * as fs from 'fs';
 import * as path from 'path';
 import chalk from 'chalk';
-
-const UTF8 = 'UTF-8';
-
-// TODO: Should we ensure balancing here with look ahead?
-const STRIP_QUOTE_CHARS_REGEXP = /^[\`\'\"](.+)[\`\'\"]$/;
+import * as fileUtil from './utils/file.util';
+import * as strLitUtil from './utils/string-literal.util';
 
 const ANGULAR_CORE_MODULE_SPECIFIER = `'@angular/core'`;
 // Question on these: Should I just be importing these directly?
@@ -37,14 +33,9 @@ const objectLiteralGetTemplateUrlProperty = (props: ts.ObjectLiteralElementLike[
     return (prop.name as ts.Identifier).escapedText as string === ANGULAR_COMPONENT_DECORATOR_TEMPLATE_URL_PROPERTY_NAME;
   });
 
-  if (templateUrl) console.log("objectLiteralGetTemplateUrlProperty", ts.SyntaxKind[templateUrl.kind], 
-    (templateUrl as ts.PropertyAssignment).initializer.getText());
-
   // TODO: Hacky...but should we just strip quotes here using a regexp?
   if (templateUrl && ts.isPropertyAssignment(templateUrl)) {
-    let filepath = templateUrl.initializer.getText() as string;
-    filepath = filepath.replace(STRIP_QUOTE_CHARS_REGEXP, '$1');
-    return filepath;
+    return strLitUtil.stripQuotes(templateUrl.initializer);
   }
 
   return null;
@@ -220,7 +211,7 @@ export function inlineHTMLTemplateFromFileInComponentDecoratorTransformer<T exte
               console.log("Template filepath", templateFilepath);
               
               if (fs.existsSync(templateFilepath)) {
-                const contentsOfTemplate = fs.readFileSync(templateFilepath, UTF8);
+                const contentsOfTemplate = fs.readFileSync(templateFilepath, fileUtil.UTF8);
                 const templatePropertyValue = ts.createStringLiteral(contentsOfTemplate);
                 const templateProperty = ts.createPropertyAssignment(
                   ANGULAR_COMPONENT_DECORATOR_TEMPLATE_PROPERTY_NAME, 

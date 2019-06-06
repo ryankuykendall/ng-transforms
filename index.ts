@@ -227,28 +227,28 @@ program
     const componentDecoratorImportMatches = findFilesWithASTMatchingSelector(
       tsFiles, NgAstSelector.NgImportComponentDecoratorFromCore);
 
-    componentDecoratorImportMatches.forEach(({filepath, source}) => {
-      let result = ts.transpileModule(source, {
-        compilerOptions: {
-          /* module: ts.ModuleKind.UMD, */
-          target: ts.ScriptTarget.Latest
-        },
-        transformers: {before: [
+    componentDecoratorImportMatches.forEach(({filepath, source, ast}) => {
+      const result: ts.TransformationResult<ts.SourceFile> = ts.transform(
+        ast, [
           ct.importViewEncapsulationFromAngularCoreTransformer(),
           ct.addViewEncapsulationShadowDomToComponentDecoratorTransformer(),
           ct.inlineHTMLTemplateFromFileInComponentDecoratorTransformer(filepath),
           cdt.inlineCSSFromFileTransformer(filepath)
-        ]}
-      });
+        ]
+      ) as ts.TransformationResult<ts.SourceFile>;
 
-      console.log(chalk.red.bold('Transform result for'), filepath);
-      console.log(result.outputText);
+      const updatedComponentSFAST = result.transformed[0];
+      const updatedFilepath = `${path.basename(filepath)}.ng-element.ts`;
+      const updatedSourceFile: ts.SourceFile = ts.createSourceFile(
+        updatedFilepath, '', ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+      const updatedComponentSource = ts.createPrinter().printNode(
+        ts.EmitHint.SourceFile, updatedComponentSFAST, updatedSourceFile);
+
+      console.log(chalk.green.bold('Transform result for'), filepath);
+
+      // TODO (ryan): Now run this through prettier!
+      console.log(updatedComponentSource);
     });
-
-    // See "Creating and Printing a TypeScript AST" here:
-    //   https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API
-    const sourceFile: ts.SourceFile = ts.createSourceFile('test.output.ts', 'const x:number = 42', ts.ScriptTarget.ES2019, true, ts.ScriptKind.TS);
-
   });
 
 

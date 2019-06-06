@@ -27,5 +27,9 @@
     "commander": "^2.20.0",
     "glob": "^7.1.4",
     "typescript": "^3.4.5"
+  },
+  "devDependencies": {
+    "@types/prettier": "^1.16.4",
+    "prettier": "^1.17.1"
   }
 }

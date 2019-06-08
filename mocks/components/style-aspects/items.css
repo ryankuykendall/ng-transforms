@@ -1,0 +1,7 @@
+:host ul {
+  display: block;
+}
+
+:host li {
+  display: inline-block;
+}

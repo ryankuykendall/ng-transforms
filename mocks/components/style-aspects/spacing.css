@@ -1,0 +1,11 @@
+:host .space-below-small {
+  margin-bottom: 12px;
+}
+
+:host .space-below-medium {
+  margin-bottom: 24px;
+}
+
+:host .space-below-large {
+  margin-bottom: 48px;
+}

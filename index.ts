@@ -6,6 +6,7 @@ import { tsquery } from '@phenomnomnominal/tsquery';
 
 import * as ct from './lib/component.transform';
 import * as cdt from './lib/transforms/components/component-decorator.transform';
+import * as compClassDecTrans from './lib/transforms/components/class-declaration.transform';
 import * as fileUtil from './lib/utils/file.util';
 import * as prettierUtil from './lib/utils/prettier.util';
 
@@ -233,6 +234,7 @@ program
         ct.addViewEncapsulationShadowDomToComponentDecoratorTransformer(),
         ct.inlineHTMLTemplateFromFileInComponentDecoratorTransformer(filepath),
         cdt.inlineCSSFromFileTransformer(filepath),
+        compClassDecTrans.renameComponentToElement(),
       ]) as ts.TransformationResult<ts.SourceFile>;
 
       const updatedComponentSFAST = result.transformed[0];

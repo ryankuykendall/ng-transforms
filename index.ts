@@ -50,6 +50,10 @@ interface IFileASTQueryMatch extends IFileAST {
   matches: ts.Node[];
 }
 
+interface IFileTransformationResult extends IFileAST {
+  transformation: ts.TransformationResult<ts.SourceFile>;
+}
+
 const dumpASTNode = (node: ts.Node, index: number = 0, depth: number = 0, indent: number = 4) => {
   const kind = ts.SyntaxKind[node.kind];
   const summary = node
@@ -110,6 +114,27 @@ const findFilesWithASTMatchingSelector = (
   });
 
   return result;
+};
+
+const generateTypescriptFromTransformationResult = (results: IFileTransformationResult[]): void => {
+  results.forEach(({ filepath, transformation }: IFileTransformationResult) => {
+    const updatedComponentSFAST = transformation.transformed[0];
+    const updatedFilepath = `${path.basename(filepath)}.element.ts`;
+    const updatedSourceFile: ts.SourceFile = ts.createSourceFile(
+      updatedFilepath,
+      '',
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS
+    );
+    const updatedComponentSource = ts
+      .createPrinter()
+      .printNode(ts.EmitHint.SourceFile, updatedComponentSFAST, updatedSourceFile);
+
+    console.log(chalk.green.bold('Transform result for'), filepath);
+    const prettyTS = prettierUtil.formatTypescript(updatedComponentSource);
+    console.log(prettyTS);
+  });
 };
 
 program.version(packageJSON.version);
@@ -238,7 +263,7 @@ program
       ]) as ts.TransformationResult<ts.SourceFile>;
 
       const updatedComponentSFAST = result.transformed[0];
-      const updatedFilepath = `${path.basename(filepath)}.ng-element.ts`;
+      const updatedFilepath = `${path.basename(filepath)}.element.ts`;
       const updatedSourceFile: ts.SourceFile = ts.createSourceFile(
         updatedFilepath,
         '',
@@ -254,6 +279,35 @@ program
       const prettyTS = prettierUtil.formatTypescript(updatedComponentSource);
       console.log(prettyTS);
     });
+  });
+
+program
+  .command('wrap-component-in-namespace <namespace> <dir>')
+  .description('Wraps Component class decorations in a namespace.')
+  .action((namespace: string, dir: string, cmd: program.Command) => {
+    console.log(chalk.green.bold('Wrapping components in namespaces'), namespace);
+    console.log(chalk.yellow.bold(`Scanning ${dir}`));
+    const namespaceItems = namespace.split('.');
+    console.log('Namespace items', namespaceItems);
+
+    const tsFiles = getTypescriptFileASTsFromDirectory(dir);
+    const transformationResults: IFileTransformationResult[] = tsFiles.map(
+      ({ filepath, source, ast }): IFileTransformationResult => {
+        const transformation = ts.transform(ast, [
+          // Create copy of namespaceItems so we do not mutate it here.
+          compClassDecTrans.placeInNamespace([...namespaceItems]),
+        ]) as ts.TransformationResult<ts.SourceFile>;
+
+        return {
+          filepath,
+          source,
+          ast,
+          transformation,
+        };
+      }
+    );
+
+    generateTypescriptFromTransformationResult(transformationResults);
   });
 
 program.parse(process.argv);

@@ -6,7 +6,6 @@ import * as fileUtil from './file.util';
 //   with executable...otherwise changing cwd will break things.
 const prettierFilename = '.prettierrc';
 const prettierFilepath = path.join(__dirname, '..', '..', '..', prettierFilename);
-console.log('prettierrc filepath = ', prettierFilepath);
 const prettierConfig = fileUtil.loadJSONFile(prettierFilepath);
 // Add typescript parser config
 const typescriptConfig = Object.assign({}, prettierConfig, { parser: 'typescript' });

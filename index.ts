@@ -253,32 +253,26 @@ program
       NgAstSelector.NgImportComponentDecoratorFromCore
     );
 
-    componentDecoratorImportMatches.forEach(({ filepath, source, ast }) => {
-      const result: ts.TransformationResult<ts.SourceFile> = ts.transform(ast, [
-        ct.importViewEncapsulationFromAngularCoreTransformer(),
-        ct.addViewEncapsulationShadowDomToComponentDecoratorTransformer(),
-        ct.inlineHTMLTemplateFromFileInComponentDecoratorTransformer(filepath),
-        cdt.inlineCSSFromFileTransformer(filepath),
-        compClassDecTrans.renameComponentToElement(),
-      ]) as ts.TransformationResult<ts.SourceFile>;
+    const transformationResults = componentDecoratorImportMatches.map(
+      ({ filepath, source, ast }): IFileTransformationResult => {
+        const transformation = ts.transform(ast, [
+          ct.importViewEncapsulationFromAngularCoreTransformer(),
+          ct.addViewEncapsulationShadowDomToComponentDecoratorTransformer(),
+          ct.inlineHTMLTemplateFromFileInComponentDecoratorTransformer(filepath),
+          cdt.inlineCSSFromFileTransformer(filepath),
+          compClassDecTrans.renameComponentToElement(),
+        ]) as ts.TransformationResult<ts.SourceFile>;
 
-      const updatedComponentSFAST = result.transformed[0];
-      const updatedFilepath = `${path.basename(filepath)}.element.ts`;
-      const updatedSourceFile: ts.SourceFile = ts.createSourceFile(
-        updatedFilepath,
-        '',
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TS
-      );
-      const updatedComponentSource = ts
-        .createPrinter()
-        .printNode(ts.EmitHint.SourceFile, updatedComponentSFAST, updatedSourceFile);
+        return {
+          filepath,
+          source,
+          ast,
+          transformation,
+        };
+      }
+    );
 
-      console.log(chalk.green.bold('Transform result for'), filepath);
-      const prettyTS = prettierUtil.formatTypescript(updatedComponentSource);
-      console.log(prettyTS);
-    });
+    generateTypescriptFromTransformationResult(transformationResults);
   });
 
 program

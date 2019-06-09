@@ -311,7 +311,7 @@ program
   });
 
 program
-  .command('get-interfaces <dir>')
+  .command('collect-interface-declarations <dir>')
   .description('Scans typescript files in a directory to pull out classes, interfaces, and enums')
   .action((dir: string, cmd: program.Command) => {
     console.log(chalk.yellow.bold(`Scanning ${dir}`));

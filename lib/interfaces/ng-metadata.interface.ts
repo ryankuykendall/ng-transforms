@@ -20,9 +20,29 @@ export interface IDirectiveMetadata {
   filepath: string;
 }
 
+export enum EnumMemberType {
+  String = 'string',
+  Number = 'number',
+}
+
+export interface IEnumNumberMemberMetadata {
+  type: EnumMemberType;
+  identifier: string;
+  value: string;
+}
+
+export interface IEnumStringMemberMetadata {
+  type: EnumMemberType;
+  identifier: string;
+  value: string;
+}
+
+export type EnumMemberMetadataType = IEnumNumberMemberMetadata | IEnumStringMemberMetadata;
+
 export interface IEnumMetadata {
   identifier: string;
   filepath: string;
+  members: (IEnumNumberMemberMetadata | IEnumStringMemberMetadata)[];
 }
 
 export interface IInterfaceMetadata {

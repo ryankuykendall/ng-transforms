@@ -4,9 +4,11 @@ import program from 'commander';
 import ts from 'typescript';
 import { tsquery } from '@phenomnomnominal/tsquery';
 
+import * as ngMetadata from './lib/interfaces/ng-metadata.interface';
 import * as ct from './lib/component.transform';
 import * as cdt from './lib/transforms/components/component-decorator.transform';
 import * as compClassDecTrans from './lib/transforms/components/class-declaration.transform';
+import * as interfaceTransforms from './lib/transforms/interface.transform';
 import * as fileUtil from './lib/utils/file.util';
 import * as prettierUtil from './lib/utils/prettier.util';
 
@@ -38,6 +40,7 @@ enum NgAstSelector {
   ComponentDecoratorContainingStyleUrls = "ClassDeclaration Decorator:has(Identifier[name='Component']) PropertyAssignment:has(Identifier[name='styleUrls']) StringLiteral",
   // For the following, would still need to backtrack to ImportDeclaration
   NgImportComponentDecoratorFromCore = "ImportDeclaration:has(ImportClause:has(NamedImports ImportSpecifier Identifier[name='Component'])) StringLiteral[value=/@angular/][value=/core/]",
+  NgInterfaces = 'ClassDeclaration, InterfaceDeclaration, EnumDeclaration',
 }
 
 interface IFileAST {
@@ -75,11 +78,14 @@ const dumpASTNode = (node: ts.Node, index: number = 0, depth: number = 0, indent
 };
 
 const getTypescriptFileASTsFromDirectory = (dir: string): IFileAST[] => {
-  const scanDirPath = path.join(process.cwd(), dir);
+  let scanDirPath = dir;
+  if (!path.isAbsolute(scanDirPath)) {
+    scanDirPath = path.join(process.cwd(), dir);
+  }
   console.log(chalk.yellow.bold(`Scanning files in`), scanDirPath);
 
   if (!fs.existsSync(scanDirPath)) {
-    console.log(chalk.red.bold(`Directory does note exist`), scanDirPath);
+    console.log(chalk.red.bold(`Directory does not exist`), scanDirPath);
   }
 
   const tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
@@ -302,6 +308,28 @@ program
     );
 
     generateTypescriptFromTransformationResult(transformationResults);
+  });
+
+program
+  .command('get-interfaces <dir>')
+  .description('Scans typescript files in a directory to pull out classes, interfaces, and enums')
+  .action((dir: string, cmd: program.Command) => {
+    console.log(chalk.yellow.bold(`Scanning ${dir}`));
+
+    const tsFiles = getTypescriptFileASTsFromDirectory(dir);
+    const interfaceMatches = findFilesWithASTMatchingSelector(tsFiles, NgAstSelector.NgInterfaces);
+
+    // TODO (ryan): Filter out all of the test files/specs.
+    const interfaces: ngMetadata.INgInterfaceMetaDataRoot = {};
+
+    const transformationResults = interfaceMatches.forEach(({ filepath, source, ast }) => {
+      ts.transform(ast, [
+        interfaceTransforms.collectMetadata(interfaces, filepath, ngMetadata.rootCollectorCallback),
+      ]);
+    });
+
+    console.log(chalk.green.bold('Found interfaces'));
+    console.log(JSON.stringify(interfaces, null, 2));
   });
 
 program.parse(process.argv);

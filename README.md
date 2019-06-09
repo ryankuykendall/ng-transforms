@@ -2,7 +2,7 @@
 
 ## Goal
 
-Mostly for fun and gettng exposure to developing with the Typescript AST for creating transforms and collecting metadata about Angular projects.
+Mostly for fun and gettng exposure to developing with the [Typescript](https://www.typescriptlang.org/) AST tooling for creating transforms and collecting metadata about [Angular](https://angular.io) projects.
 
 ## Setup
 
@@ -32,3 +32,7 @@ $ npm run cli <command> <arguments>
 
 mocks/ Contains sample Angular files used to testing CLI.
 stubs/ Contains base Angular files used for generating code.
+
+## Useful tools for development
+
+- [https://ts-ast-viewer.com/](https://ts-ast-viewer.com/)

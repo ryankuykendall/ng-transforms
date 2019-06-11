@@ -320,7 +320,7 @@ program
     const interfaceMatches = findFilesWithASTMatchingSelector(tsFiles, NgAstSelector.NgInterfaces);
 
     // TODO (ryan): Filter out all of the test files/specs.
-    const interfaces: ngMetadata.INgInterfaceMetaDataRoot = {};
+    const interfaces: ngMetadata.INgInterfaceMetadataRoot = {};
 
     const transformationResults = interfaceMatches.forEach(({ filepath, source, ast }) => {
       ts.transform(ast, [

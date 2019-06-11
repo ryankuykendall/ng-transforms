@@ -4,6 +4,26 @@ import * as decUtil from './../utils/decorator.util';
 import * as idUtil from './../utils/identifier.util';
 import * as ngMetadata from './../interfaces/ng-metadata.interface';
 
+const getTypeFromNode = (typeNode: ts.TypeNode): ngMetadata.DataType => {
+  let type = ngMetadata.basicTypeMap.get(typeNode.kind);
+  if (type) {
+    return type;
+  }
+  type = ngMetadata.objectTypeMap.get(typeNode.kind);
+  if (type) {
+    return type;
+  }
+  const typeHandler = ngMetadata.complexTypeMap.get(typeNode.kind);
+  if (typeHandler) {
+    let props = {};
+    [type, props] = typeHandler.call(null, typeNode);
+    console.log('Type and props', type, props);
+    return type;
+  }
+
+  return ngMetadata.BasicType.Unknown;
+};
+
 const collectEnumMetadata = (
   node: ts.EnumDeclaration,
   filepath: string
@@ -36,13 +56,57 @@ const collectEnumMetadata = (
   } as ngMetadata.IEnumMetadata;
 };
 
+const collectInterfaceMetadata = (
+  node: ts.InterfaceDeclaration,
+  filepath: string
+): ngMetadata.IInterfaceMetadata => {
+  const identifier = idUtil.getName(node as idUtil.NameableProxy);
+
+  const methods: ngMetadata.IInterfaceMethodMetadata[] = node.members
+    .filter(member => ts.isMethodSignature(member))
+    .map(member => member as ts.MethodSignature)
+    .map((prop: ts.MethodSignature) => {
+      const propId = idUtil.getName(prop as idUtil.NameableProxy);
+      return {
+        identifier: propId,
+      };
+    });
+
+  // NOTE (ryan): We may want to separate properties that are functions from
+  //   this set of properties because of arguments
+  const properties: ngMetadata.IInterfacePropertyMetadata[] = node.members
+    .filter(member => ts.isPropertySignature(member))
+    .map(member => member as ts.PropertySignature)
+    .map((prop: ts.PropertySignature) => {
+      const propId = idUtil.getName(prop as idUtil.NameableProxy);
+      const optional = !!prop.questionToken;
+      let type = '[placeholder]';
+      if (prop.type) {
+        type = getTypeFromNode(prop.type);
+      }
+
+      return {
+        identifier: propId,
+        optional,
+        type,
+      };
+    });
+
+  return {
+    identifier,
+    filepath,
+    methods,
+    properties,
+  };
+};
+
 // Note: In classes/components/directives where we can not make a good decision around
 //   how to define the metadata or defaults (say for getters or setters), we should just
 //   capture it as a WARNING with the related code snippet so that we can try to address
 //   it incrementally (or prompt the user to do it for use!)
 
 export function collectMetadata<T extends ts.Node>(
-  interfaces: ngMetadata.INgInterfaceMetaDataRoot,
+  interfaces: ngMetadata.INgInterfaceMetadataRoot,
   filepath: string,
   callback: ngMetadata.RootCollectorCallbackType
 ): ts.TransformerFactory<T> {
@@ -87,11 +151,7 @@ export function collectMetadata<T extends ts.Node>(
 
       // Collect Interfaces
       if (ts.isInterfaceDeclaration(node)) {
-        const identifier = idUtil.getName(node as idUtil.NameableProxy);
-        const metadata: ngMetadata.IInterfaceMetadata = {
-          filepath,
-          identifier,
-        };
+        const metadata: ngMetadata.IInterfaceMetadata = collectInterfaceMetadata(node, filepath);
         callback.call(null, interfaces, ngMetadata.RootType.interfaces, metadata);
       }
 

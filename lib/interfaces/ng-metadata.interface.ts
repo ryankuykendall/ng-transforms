@@ -38,20 +38,18 @@ export const objectTypeMap: Map<ts.SyntaxKind, ObjectType> = new Map([
   [ts.SyntaxKind.TypeLiteral, ObjectType.Object],
 ]);
 
-export type typeNodeHandlerFunc = (typeNode: ts.TypeNode) => [DataType, any];
-export const kindTypeReferenceNodeHandler = (typeNode: ts.TypeNode): [DataType, any] => {
+export type typeNodeHandlerFunc = (typeNode: ts.TypeNode) => DataType;
+export const kindTypeReferenceNodeHandler = (typeNode: ts.TypeNode): DataType | string => {
   let type: DataType = BasicType.Unknown;
-  console.log('kindTypeReferenceHandler', ts.SyntaxKind[typeNode.kind], typeNode.getFullText());
   if (ts.isTypeReferenceNode(typeNode)) {
     const typeName = (typeNode.typeName as ts.Identifier).escapedText as string;
+
     switch (typeName) {
       case 'Set':
         type = ObjectType.Set;
-        // Get propTypes here...
         break;
       case 'Map':
         type = ObjectType.Map;
-        // Get propTypes here...
         break;
       default:
         type = typeName;
@@ -59,7 +57,7 @@ export const kindTypeReferenceNodeHandler = (typeNode: ts.TypeNode): [DataType, 
     }
   }
 
-  return [type, {}];
+  return type;
 };
 
 export const complexTypeMap: Map<ts.SyntaxKind, typeNodeHandlerFunc> = new Map([
@@ -73,6 +71,14 @@ interface HasIdentifier {
 
 interface HasFilepath {
   filepath: string;
+}
+
+/** Arguments */
+export interface IFunctionArguments {}
+
+export interface ITypeArguments {
+  type: DataType;
+  typeArguments?: ITypeArguments[];
 }
 
 /** Classes */
@@ -124,7 +130,8 @@ export interface IInterfaceMethodMetadata {
 export interface IInterfacePropertyMetadata {
   identifier: string;
   optional: boolean;
-  type: BasicType | string;
+  type: DataType | string;
+  typeArguments?: ITypeArguments[];
 }
 
 export interface IInterfaceMetadata {

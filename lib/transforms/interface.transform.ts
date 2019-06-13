@@ -15,13 +15,33 @@ const getTypeFromNode = (typeNode: ts.TypeNode): ngMetadata.DataType => {
   }
   const typeHandler = ngMetadata.complexTypeMap.get(typeNode.kind);
   if (typeHandler) {
-    let props = {};
-    [type, props] = typeHandler.call(null, typeNode);
-    console.log('Type and props', type, props);
+    type = typeHandler.call(null, typeNode);
     return type;
   }
 
   return ngMetadata.BasicType.Unknown;
+};
+
+const getTypeArguments = (typeNode: ts.TypeReferenceNode): ngMetadata.ITypeArguments[] => {
+  const typeArgumentsNode = typeNode.typeArguments;
+  let args: ngMetadata.ITypeArguments[] = [];
+  if (typeArgumentsNode && typeArgumentsNode.length > 0) {
+    typeArgumentsNode.forEach(childTypeNode => {
+      const childType = getTypeFromNode(childTypeNode);
+      const childTypeArg: ngMetadata.ITypeArguments = {
+        type: childType,
+      };
+
+      // Recurse to capture nested child types.
+      if (ts.isTypeReferenceNode(childTypeNode)) {
+        childTypeArg.typeArguments = getTypeArguments(childTypeNode);
+      }
+
+      args.push(childTypeArg);
+    });
+  }
+
+  return args;
 };
 
 const collectEnumMetadata = (
@@ -77,20 +97,25 @@ const collectInterfaceMetadata = (
   const properties: ngMetadata.IInterfacePropertyMetadata[] = node.members
     .filter(member => ts.isPropertySignature(member))
     .map(member => member as ts.PropertySignature)
-    .map((prop: ts.PropertySignature) => {
-      const propId = idUtil.getName(prop as idUtil.NameableProxy);
-      const optional = !!prop.questionToken;
-      let type = '[placeholder]';
-      if (prop.type) {
-        type = getTypeFromNode(prop.type);
-      }
+    .map(
+      (prop: ts.PropertySignature): ngMetadata.IInterfacePropertyMetadata => {
+        const propId = idUtil.getName(prop as idUtil.NameableProxy);
+        const optional = !!prop.questionToken;
+        let type = '[placeholder]';
+        let typeArgs;
+        if (prop.type) {
+          type = getTypeFromNode(prop.type);
+          typeArgs = getTypeArguments(prop.type as ts.TypeReferenceNode);
+        }
 
-      return {
-        identifier: propId,
-        optional,
-        type,
-      };
-    });
+        return {
+          identifier: propId,
+          optional,
+          type,
+          typeArguments: typeArgs,
+        };
+      }
+    );
 
   return {
     identifier,

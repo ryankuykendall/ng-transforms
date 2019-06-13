@@ -18,4 +18,6 @@ export interface InterfaceExample {
   nonBasicType1: TestType;
   someSet: Set<number>;
   someMap: Map<string, boolean>;
+
+  someNestedTypeArgMap: Map<string, Map<string, Set<number[]>>>;
 }

@@ -4,6 +4,8 @@ import * as decUtil from './../utils/decorator.util';
 import * as idUtil from './../utils/identifier.util';
 import * as ngMetadata from './../interfaces/ng-metadata.interface';
 
+import chalk from 'chalk';
+
 const getTypeFromNode = (typeNode: ts.TypeNode): ngMetadata.DataType => {
   let type = ngMetadata.basicTypeMap.get(typeNode.kind);
   if (type) {
@@ -22,13 +24,21 @@ const getTypeFromNode = (typeNode: ts.TypeNode): ngMetadata.DataType => {
   return ngMetadata.BasicType.Unknown;
 };
 
-const getTypeArguments = (typeNode: ts.TypeReferenceNode): ngMetadata.ITypeArguments[] => {
+const getTypeArgumentsFromArrayType = (typeNode: ts.ArrayTypeNode): ngMetadata.ITypeArgument => {
+  return {
+    type: getTypeFromNode(typeNode.elementType),
+    typeArguments: getTypeArguments(typeNode.elementType as ts.TypeReferenceNode),
+  };
+};
+
+const getTypeArguments = (typeNode: ts.TypeReferenceNode): ngMetadata.ITypeArgument[] => {
   const typeArgumentsNode = typeNode.typeArguments;
-  let args: ngMetadata.ITypeArguments[] = [];
+  let args: ngMetadata.ITypeArgument[] = [];
+
   if (typeArgumentsNode && typeArgumentsNode.length > 0) {
     typeArgumentsNode.forEach(childTypeNode => {
       const childType = getTypeFromNode(childTypeNode);
-      const childTypeArg: ngMetadata.ITypeArguments = {
+      const childTypeArg: ngMetadata.ITypeArgument = {
         type: childType,
       };
 
@@ -37,11 +47,58 @@ const getTypeArguments = (typeNode: ts.TypeReferenceNode): ngMetadata.ITypeArgum
         childTypeArg.typeArguments = getTypeArguments(childTypeNode);
       }
 
+      if (ts.isArrayTypeNode(childTypeNode)) {
+        childTypeArg.typeArguments = [getTypeArgumentsFromArrayType(childTypeNode)];
+      }
+
       args.push(childTypeArg);
     });
+  } else if (ts.isArrayTypeNode(typeNode)) {
+    args.push(getTypeArgumentsFromArrayType(typeNode));
   }
 
   return args;
+};
+
+const getMethodParameters = (
+  node: ts.MethodSignature | ts.FunctionTypeNode
+): ngMetadata.IMethodParameter[] => {
+  return node.parameters.map(
+    (param: ts.ParameterDeclaration): ngMetadata.IMethodParameter => {
+      let type: ngMetadata.DataType = ngMetadata.BasicType.Unknown;
+      let typeArguments;
+      if (param.type) {
+        type = getTypeFromNode(param.type);
+        typeArguments = getTypeArguments(param.type as ts.TypeReferenceNode);
+      }
+
+      return {
+        identifier: idUtil.getName(param as idUtil.NameableProxy),
+        type,
+        typeArguments,
+      };
+    }
+  );
+};
+
+const getMethodMetadata = (
+  node: ts.MethodSignature | ts.FunctionTypeNode
+): ngMetadata.IMethodBase => {
+  let parameters = getMethodParameters(node);
+
+  let returnType: ngMetadata.IReturn = {
+    type: ngMetadata.BasicType.Void,
+  };
+
+  if (node.type) {
+    returnType.type = getTypeFromNode(node.type);
+    returnType.typeArguments = getTypeArguments(node.type as ts.TypeReferenceNode);
+  }
+
+  return {
+    parameters,
+    returns: returnType,
+  };
 };
 
 const collectEnumMetadata = (
@@ -76,50 +133,89 @@ const collectEnumMetadata = (
   } as ngMetadata.IEnumMetadata;
 };
 
+interface TypeElementNodeDistribution {
+  propertyNodes: ts.PropertySignature[];
+  functionNodes: ts.PropertySignature[];
+  methodNodes: ts.MethodSignature[];
+}
+
+const distributeTypeElementNodes = (node: ts.InterfaceDeclaration): TypeElementNodeDistribution => {
+  return node.members.reduce(
+    (distribution: TypeElementNodeDistribution, prop: ts.TypeElement) => {
+      if (ts.isMethodSignature(prop)) {
+        distribution.methodNodes.push(prop);
+      } else if (ts.isPropertySignature(prop)) {
+        if (prop.type && getTypeFromNode(prop.type) === ngMetadata.BasicType.Function) {
+          distribution.functionNodes.push(prop);
+        } else {
+          distribution.propertyNodes.push(prop);
+        }
+      }
+      return distribution;
+    },
+    { propertyNodes: [], functionNodes: [], methodNodes: [] }
+  );
+};
+
+const getPropertySignatureMetadata = (
+  prop: ts.PropertySignature
+): ngMetadata.IInterfacePropertyMetadata => {
+  const propId = idUtil.getName(prop as idUtil.NameableProxy);
+  const optional = !!prop.questionToken;
+  let type: ngMetadata.DataType = ngMetadata.BasicType.Unknown;
+  let typeArgs;
+  if (prop.type) {
+    type = getTypeFromNode(prop.type);
+    typeArgs = getTypeArguments(prop.type as ts.TypeReferenceNode);
+  }
+
+  return {
+    identifier: propId,
+    optional,
+    type,
+    typeArguments: typeArgs,
+  };
+};
+
+const getMethodSignatureMetadata = (prop: ts.MethodSignature) => {
+  const propId = idUtil.getName(prop as idUtil.NameableProxy);
+  const methodMetadata = getMethodMetadata(prop);
+
+  return {
+    identifier: propId,
+    ...methodMetadata,
+  };
+};
+
+const getFunctionSignatureMetadata = (prop: ts.PropertySignature) => {
+  const propId = idUtil.getName(prop as idUtil.NameableProxy);
+  const methodMetadata = getMethodMetadata(prop.type as ts.FunctionTypeNode);
+  const optional = !!prop.questionToken;
+
+  return {
+    identifier: propId,
+    optional,
+    ...methodMetadata,
+  };
+};
+
 const collectInterfaceMetadata = (
   node: ts.InterfaceDeclaration,
   filepath: string
 ): ngMetadata.IInterfaceMetadata => {
   const identifier = idUtil.getName(node as idUtil.NameableProxy);
+  const { propertyNodes, functionNodes, methodNodes } = distributeTypeElementNodes(node);
 
-  const methods: ngMetadata.IInterfaceMethodMetadata[] = node.members
-    .filter(member => ts.isMethodSignature(member))
-    .map(member => member as ts.MethodSignature)
-    .map((prop: ts.MethodSignature) => {
-      const propId = idUtil.getName(prop as idUtil.NameableProxy);
-      return {
-        identifier: propId,
-      };
-    });
-
-  // NOTE (ryan): We may want to separate properties that are functions from
-  //   this set of properties because of arguments
-  const properties: ngMetadata.IInterfacePropertyMetadata[] = node.members
-    .filter(member => ts.isPropertySignature(member))
-    .map(member => member as ts.PropertySignature)
-    .map(
-      (prop: ts.PropertySignature): ngMetadata.IInterfacePropertyMetadata => {
-        const propId = idUtil.getName(prop as idUtil.NameableProxy);
-        const optional = !!prop.questionToken;
-        let type = '[placeholder]';
-        let typeArgs;
-        if (prop.type) {
-          type = getTypeFromNode(prop.type);
-          typeArgs = getTypeArguments(prop.type as ts.TypeReferenceNode);
-        }
-
-        return {
-          identifier: propId,
-          optional,
-          type,
-          typeArguments: typeArgs,
-        };
-      }
-    );
+  const properties: ngMetadata.IInterfacePropertyMetadata[] = propertyNodes.map(
+    getPropertySignatureMetadata
+  );
+  const methods: ngMetadata.IMethodMetadata[] = methodNodes.map(getMethodSignatureMetadata);
+  const funcs: ngMetadata.IFunctionMetadata[] = functionNodes.map(getFunctionSignatureMetadata);
 
   return {
     identifier,
     filepath,
+    functions: funcs,
     methods,
     properties,
   };

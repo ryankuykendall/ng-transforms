@@ -1,12 +1,14 @@
-import ts, { getNameOfDeclaration } from 'typescript';
+import ts from 'typescript';
 
 export enum BasicType {
+  Any = 'any',
   Boolean = 'boolean',
   Enum = 'enum',
   Function = 'function',
   Number = 'number',
   String = 'string',
   Unknown = '[unknown]',
+  Void = 'void',
 }
 
 export enum ObjectType {
@@ -74,11 +76,23 @@ interface HasFilepath {
 }
 
 /** Arguments */
-export interface IFunctionArguments {}
-
-export interface ITypeArguments {
+export interface ITypeArgument {
   type: DataType;
-  typeArguments?: ITypeArguments[];
+  typeArguments?: ITypeArgument[];
+}
+
+export interface IMethodParameter extends HasIdentifier, ITypeArgument {}
+
+export interface IReturn extends ITypeArgument {}
+
+export interface IMethodBase {
+  parameters: IMethodParameter[];
+  returns: IReturn;
+}
+
+export interface IMethodMetadata extends HasIdentifier, IMethodBase {}
+export interface IFunctionMetadata extends IMethodMetadata {
+  optional: boolean;
 }
 
 /** Classes */
@@ -123,21 +137,19 @@ export interface IEnumMetadata {
 }
 
 /** Interfaces */
-export interface IInterfaceMethodMetadata {
-  identifier: string;
-}
-
 export interface IInterfacePropertyMetadata {
   identifier: string;
   optional: boolean;
   type: DataType | string;
-  typeArguments?: ITypeArguments[];
+  typeArguments?: ITypeArgument[];
+  returns?: IReturn;
 }
 
 export interface IInterfaceMetadata {
   identifier: string;
   filepath: string;
-  methods: IInterfaceMethodMetadata[];
+  functions: IFunctionMetadata[];
+  methods: IMethodMetadata[];
   properties: IInterfacePropertyMetadata[];
 }
 

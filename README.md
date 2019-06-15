@@ -2,7 +2,7 @@
 
 ## Goal
 
-Mostly for fun and gettng exposure to developing with the [Typescript](https://www.typescriptlang.org/) AST tooling for creating transforms and collecting metadata about [Angular](https://angular.io) projects.
+Mostly for fun and getting exposure to developing with the [Typescript](https://www.typescriptlang.org/) AST tooling for creating transforms and collecting metadata about [Angular](https://angular.io) projects.
 
 ## Why?
 

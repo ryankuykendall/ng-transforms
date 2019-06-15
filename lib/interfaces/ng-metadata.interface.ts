@@ -99,16 +99,10 @@ export interface IFunctionMetadata extends IMethodMetadata {
 export interface IClassMetadata extends HasIdentifier, HasFilepath {}
 
 /** Components */
-export interface IComponentMetadata {
-  identifier: string;
-  filepath: string;
-}
+export interface IComponentMetadata extends HasIdentifier, HasFilepath {}
 
 /** Directives */
-export interface IDirectiveMetadata {
-  identifier: string;
-  filepath: string;
-}
+export interface IDirectiveMetadata extends HasIdentifier, HasFilepath {}
 
 /** Enums */
 export enum EnumMemberType {
@@ -116,50 +110,44 @@ export enum EnumMemberType {
   String = 'string',
 }
 
-export interface IEnumNumberMemberMetadata {
+export interface IEnumNumberMemberMetadata extends HasIdentifier {
   type: EnumMemberType;
-  identifier: string;
   value: string;
 }
 
-export interface IEnumStringMemberMetadata {
+export interface IEnumStringMemberMetadata extends HasIdentifier {
   type: EnumMemberType;
-  identifier: string;
   value: string;
 }
 
 export type EnumMemberMetadataType = IEnumNumberMemberMetadata | IEnumStringMemberMetadata;
 
-export interface IEnumMetadata {
-  identifier: string;
-  filepath: string;
+export interface IEnumMetadata extends HasIdentifier, HasFilepath {
   members: (IEnumNumberMemberMetadata | IEnumStringMemberMetadata)[];
 }
 
 /** Interfaces */
-export interface IInterfacePropertyMetadata {
-  identifier: string;
+export interface IInterfacePropertyMetadata extends HasIdentifier {
   optional: boolean;
   type: DataType | string;
   typeArguments?: ITypeArgument[];
-  returns?: IReturn;
 }
 
-export interface IInterfaceMetadata {
-  identifier: string;
-  filepath: string;
+export interface IInterfaceMetadata extends HasIdentifier, HasFilepath {
   functions: IFunctionMetadata[];
   methods: IMethodMetadata[];
   properties: IInterfacePropertyMetadata[];
 }
 
 /** Modules */
-export interface INgModuleMetadata {
+export interface INgModuleMetadata extends HasIdentifier, HasFilepath {
   identifier: string;
   filepath: string;
 }
 
 // Instead of RootTypes, we should call these declarations
+// QUESTION (ryan): Should we be capturing exported functions/methods
+//   that are not defined in an interface or a class?
 export enum RootType {
   classes = 'classes',
   components = 'components',

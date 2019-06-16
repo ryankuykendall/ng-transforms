@@ -2,7 +2,7 @@ import ts from 'typescript';
 import * as decIdsUtil from './../utils/decorator-identifier.util';
 import * as decUtil from './../utils/decorator.util';
 import * as idUtil from './../utils/identifier.util';
-import * as dmInterfaceInter from './../interfaces/ng-metadata.interface';
+import * as dmInterfaceInter from './interface.interface';
 
 import chalk from 'chalk';
 

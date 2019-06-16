@@ -4,13 +4,14 @@ import program from 'commander';
 import ts from 'typescript';
 import { tsquery } from '@phenomnomnominal/tsquery';
 
-import * as ngMetadata from './lib/interfaces/ng-metadata.interface';
 import * as ct from './lib/component.transform';
 import * as cdt from './lib/transforms/components/component-decorator.transform';
 import * as compClassDecTrans from './lib/transforms/components/class-declaration.transform';
-import * as interfaceTransforms from './lib/transforms/interface.transform';
 import * as fileUtil from './lib/utils/file.util';
 import * as prettierUtil from './lib/utils/prettier.util';
+
+import * as dm from './lib/declaration-metadata/index.metadata';
+import * as dmInterfaceInter from './lib/declaration-metadata/interface.interface';
 
 import chalk from 'chalk';
 import * as glob from 'glob';
@@ -320,11 +321,11 @@ program
     const interfaceMatches = findFilesWithASTMatchingSelector(tsFiles, NgAstSelector.NgInterfaces);
 
     // TODO (ryan): Filter out all of the test files/specs.
-    const interfaces: ngMetadata.INgInterfaceMetadataRoot = {};
+    const interfaces: dmInterfaceInter.INgInterfaceMetadataRoot = {};
 
     const transformationResults = interfaceMatches.forEach(({ filepath, source, ast }) => {
       ts.transform(ast, [
-        interfaceTransforms.collectMetadata(interfaces, filepath, ngMetadata.rootCollectorCallback),
+        dm.collectMetadata(interfaces, filepath, dmInterfaceInter.rootCollectorCallback),
       ]);
     });
 

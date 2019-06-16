@@ -321,10 +321,10 @@ program
     const interfaceMatches = findFilesWithASTMatchingSelector(tsFiles, NgAstSelector.NgInterfaces);
 
     // TODO (ryan): Filter out all of the test files/specs.
-    const interfaces: dmIfIf.INgInterfaceMetadataRoot = {};
+    const interfaces: dm.IRootMetadata = {};
 
     const transformationResults = interfaceMatches.forEach(({ filepath, source, ast }) => {
-      ts.transform(ast, [dm.collectMetadata(interfaces, filepath, dmIfIf.rootCollectorCallback)]);
+      ts.transform(ast, [dm.collectMetadata(interfaces, filepath, dm.rootCollectorCallback)]);
     });
 
     console.log(chalk.green.bold('Found interfaces'));

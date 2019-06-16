@@ -4,9 +4,20 @@ import * as decUtil from './../utils/decorator.util';
 import * as idUtil from './../utils/identifier.util';
 import * as dmIfIf from './interface.interface';
 
+import { IClassMetadata } from './class.interface';
+import { IComponentMetadata } from './component.interface';
+import { IDirectiveMetadata } from './directive.interface';
+import { IEnumMetadata } from './enum.interface';
+import { collectEnumMetadata } from './enum.metadata';
+import { INgModuleMetadata } from './ng-module.interface';
+
 import { BasicType, DataType, basicTypeMap, objectTypeMap, complexTypeMap } from './base.metadata';
+import { IRootMetadata, RootCollectorCallbackType, RootType } from './root.interface';
+import { rootCollectorCallback } from './root.metadata';
 
 import chalk from 'chalk';
+
+export { IRootMetadata, rootCollectorCallback };
 
 const getTypeFromNode = (typeNode: ts.TypeNode): DataType => {
   let type = basicTypeMap.get(typeNode.kind);
@@ -99,35 +110,6 @@ const getMethodMetadata = (node: ts.MethodSignature | ts.FunctionTypeNode): dmIf
     parameters,
     returns: returnType,
   };
-};
-
-const collectEnumMetadata = (node: ts.EnumDeclaration, filepath: string): dmIfIf.IEnumMetadata => {
-  const identifier = idUtil.getName(node as idUtil.NameableProxy);
-  const members = node.members.map((member: ts.EnumMember, index) => {
-    const memberId = idUtil.getName(member as idUtil.NameableProxy);
-    let value: number | string = index;
-    let type = dmIfIf.EnumMemberType.Number;
-    if (member.initializer) {
-      if (ts.isNumericLiteral(member.initializer)) {
-        value = parseInt(member.initializer.getText(), 10);
-      } else if (ts.isStringLiteral(member.initializer)) {
-        type = dmIfIf.EnumMemberType.String;
-        value = member.initializer.text;
-      }
-    }
-
-    return {
-      identifier: memberId,
-      type,
-      value,
-    };
-  }) as dmIfIf.EnumMemberMetadataType[];
-
-  return {
-    filepath,
-    identifier,
-    members,
-  } as dmIfIf.IEnumMetadata;
 };
 
 interface TypeElementNodeDistribution {
@@ -224,9 +206,9 @@ const collectInterfaceMetadata = (
 //   it incrementally (or prompt the user to do it for use!)
 
 export function collectMetadata<T extends ts.Node>(
-  interfaces: dmIfIf.INgInterfaceMetadataRoot,
+  interfaces: IRootMetadata,
   filepath: string,
-  callback: dmIfIf.RootCollectorCallbackType
+  callback: RootCollectorCallbackType
 ): ts.TransformerFactory<T> {
   return context => {
     const visit: ts.Visitor = node => {
@@ -235,42 +217,42 @@ export function collectMetadata<T extends ts.Node>(
         const identifier = idUtil.getName(node as idUtil.NameableProxy);
 
         if (decUtil.hasDecoratorWithName(node, decIdsUtil.COMPONENT)) {
-          const metadata: dmIfIf.IComponentMetadata = {
+          const metadata: IComponentMetadata = {
             filepath,
             identifier,
           };
-          callback.call(null, interfaces, dmIfIf.RootType.components, metadata);
+          callback.call(null, interfaces, RootType.components, metadata);
         } else if (decUtil.hasDecoratorWithName(node, decIdsUtil.DIRECTIVE)) {
-          const metadata: dmIfIf.IDirectiveMetadata = {
+          const metadata: IDirectiveMetadata = {
             filepath,
             identifier,
           };
-          callback.call(null, interfaces, dmIfIf.RootType.directives, metadata);
+          callback.call(null, interfaces, RootType.directives, metadata);
         } else if (decUtil.hasDecoratorWithName(node, decIdsUtil.NG_MODULE)) {
-          const metadata: dmIfIf.INgModuleMetadata = {
+          const metadata: INgModuleMetadata = {
             filepath,
             identifier,
           };
-          callback.call(null, interfaces, dmIfIf.RootType.modules, metadata);
+          callback.call(null, interfaces, RootType.modules, metadata);
         } else {
-          const metadata: dmIfIf.IClassMetadata = {
+          const metadata: IClassMetadata = {
             filepath,
             identifier,
           };
-          callback.call(null, interfaces, dmIfIf.RootType.classes, metadata);
+          callback.call(null, interfaces, RootType.classes, metadata);
         }
       }
 
       // Collect Enums
       if (ts.isEnumDeclaration(node)) {
-        const metadata: dmIfIf.IEnumMetadata = collectEnumMetadata(node, filepath);
-        callback.call(null, interfaces, dmIfIf.RootType.enums, metadata);
+        const metadata: IEnumMetadata = collectEnumMetadata(node, filepath);
+        callback.call(null, interfaces, RootType.enums, metadata);
       }
 
       // Collect Interfaces
       if (ts.isInterfaceDeclaration(node)) {
         const metadata: dmIfIf.IInterfaceMetadata = collectInterfaceMetadata(node, filepath);
-        callback.call(null, interfaces, dmIfIf.RootType.interfaces, metadata);
+        callback.call(null, interfaces, RootType.interfaces, metadata);
       }
 
       return ts.visitEachChild(node, child => visit(child), context);

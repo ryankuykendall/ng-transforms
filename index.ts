@@ -11,7 +11,7 @@ import * as fileUtil from './lib/utils/file.util';
 import * as prettierUtil from './lib/utils/prettier.util';
 
 import * as dm from './lib/declaration-metadata/index.metadata';
-import * as dmInterfaceInter from './lib/declaration-metadata/interface.interface';
+import * as dmIfIf from './lib/declaration-metadata/interface.interface';
 
 import chalk from 'chalk';
 import * as glob from 'glob';
@@ -321,12 +321,10 @@ program
     const interfaceMatches = findFilesWithASTMatchingSelector(tsFiles, NgAstSelector.NgInterfaces);
 
     // TODO (ryan): Filter out all of the test files/specs.
-    const interfaces: dmInterfaceInter.INgInterfaceMetadataRoot = {};
+    const interfaces: dmIfIf.INgInterfaceMetadataRoot = {};
 
     const transformationResults = interfaceMatches.forEach(({ filepath, source, ast }) => {
-      ts.transform(ast, [
-        dm.collectMetadata(interfaces, filepath, dmInterfaceInter.rootCollectorCallback),
-      ]);
+      ts.transform(ast, [dm.collectMetadata(interfaces, filepath, dmIfIf.rootCollectorCallback)]);
     });
 
     console.log(chalk.green.bold('Found interfaces'));

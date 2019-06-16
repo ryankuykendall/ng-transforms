@@ -2,45 +2,45 @@ import ts from 'typescript';
 import * as decIdsUtil from './../utils/decorator-identifier.util';
 import * as decUtil from './../utils/decorator.util';
 import * as idUtil from './../utils/identifier.util';
-import * as dmInterfaceInter from './interface.interface';
+import * as dmIfIf from './interface.interface';
+
+import { BasicType, DataType, basicTypeMap, objectTypeMap, complexTypeMap } from './base.metadata';
 
 import chalk from 'chalk';
 
-const getTypeFromNode = (typeNode: ts.TypeNode): dmInterfaceInter.DataType => {
-  let type = dmInterfaceInter.basicTypeMap.get(typeNode.kind);
+const getTypeFromNode = (typeNode: ts.TypeNode): DataType => {
+  let type = basicTypeMap.get(typeNode.kind);
   if (type) {
     return type;
   }
-  type = dmInterfaceInter.objectTypeMap.get(typeNode.kind);
+  type = objectTypeMap.get(typeNode.kind);
   if (type) {
     return type;
   }
-  const typeHandler = dmInterfaceInter.complexTypeMap.get(typeNode.kind);
+  const typeHandler = complexTypeMap.get(typeNode.kind);
   if (typeHandler) {
     type = typeHandler.call(null, typeNode);
     return type;
   }
 
-  return dmInterfaceInter.BasicType.Unknown;
+  return BasicType.Unknown;
 };
 
-const getTypeArgumentsFromArrayType = (
-  typeNode: ts.ArrayTypeNode
-): dmInterfaceInter.ITypeArgument => {
+const getTypeArgumentsFromArrayType = (typeNode: ts.ArrayTypeNode): dmIfIf.ITypeArgument => {
   return {
     type: getTypeFromNode(typeNode.elementType),
     typeArguments: getTypeArguments(typeNode.elementType as ts.TypeReferenceNode),
   };
 };
 
-const getTypeArguments = (typeNode: ts.TypeReferenceNode): dmInterfaceInter.ITypeArgument[] => {
+const getTypeArguments = (typeNode: ts.TypeReferenceNode): dmIfIf.ITypeArgument[] => {
   const typeArgumentsNode = typeNode.typeArguments;
-  let args: dmInterfaceInter.ITypeArgument[] = [];
+  let args: dmIfIf.ITypeArgument[] = [];
 
   if (typeArgumentsNode && typeArgumentsNode.length > 0) {
     typeArgumentsNode.forEach(childTypeNode => {
       const childType = getTypeFromNode(childTypeNode);
-      const childTypeArg: dmInterfaceInter.ITypeArgument = {
+      const childTypeArg: dmIfIf.ITypeArgument = {
         type: childType,
       };
 
@@ -64,10 +64,10 @@ const getTypeArguments = (typeNode: ts.TypeReferenceNode): dmInterfaceInter.ITyp
 
 const getMethodParameters = (
   node: ts.MethodSignature | ts.FunctionTypeNode
-): dmInterfaceInter.IMethodParameter[] => {
+): dmIfIf.IMethodParameter[] => {
   return node.parameters.map(
-    (param: ts.ParameterDeclaration): dmInterfaceInter.IMethodParameter => {
-      let type: dmInterfaceInter.DataType = dmInterfaceInter.BasicType.Unknown;
+    (param: ts.ParameterDeclaration): dmIfIf.IMethodParameter => {
+      let type: DataType = BasicType.Unknown;
       let typeArguments;
       if (param.type) {
         type = getTypeFromNode(param.type);
@@ -83,13 +83,11 @@ const getMethodParameters = (
   );
 };
 
-const getMethodMetadata = (
-  node: ts.MethodSignature | ts.FunctionTypeNode
-): dmInterfaceInter.IMethodBase => {
+const getMethodMetadata = (node: ts.MethodSignature | ts.FunctionTypeNode): dmIfIf.IMethodBase => {
   let parameters = getMethodParameters(node);
 
-  let returnType: dmInterfaceInter.IReturn = {
-    type: dmInterfaceInter.BasicType.Void,
+  let returnType: dmIfIf.IReturn = {
+    type: BasicType.Void,
   };
 
   if (node.type) {
@@ -103,20 +101,17 @@ const getMethodMetadata = (
   };
 };
 
-const collectEnumMetadata = (
-  node: ts.EnumDeclaration,
-  filepath: string
-): dmInterfaceInter.IEnumMetadata => {
+const collectEnumMetadata = (node: ts.EnumDeclaration, filepath: string): dmIfIf.IEnumMetadata => {
   const identifier = idUtil.getName(node as idUtil.NameableProxy);
   const members = node.members.map((member: ts.EnumMember, index) => {
     const memberId = idUtil.getName(member as idUtil.NameableProxy);
     let value: number | string = index;
-    let type = dmInterfaceInter.EnumMemberType.Number;
+    let type = dmIfIf.EnumMemberType.Number;
     if (member.initializer) {
       if (ts.isNumericLiteral(member.initializer)) {
         value = parseInt(member.initializer.getText(), 10);
       } else if (ts.isStringLiteral(member.initializer)) {
-        type = dmInterfaceInter.EnumMemberType.String;
+        type = dmIfIf.EnumMemberType.String;
         value = member.initializer.text;
       }
     }
@@ -126,13 +121,13 @@ const collectEnumMetadata = (
       type,
       value,
     };
-  }) as dmInterfaceInter.EnumMemberMetadataType[];
+  }) as dmIfIf.EnumMemberMetadataType[];
 
   return {
     filepath,
     identifier,
     members,
-  } as dmInterfaceInter.IEnumMetadata;
+  } as dmIfIf.IEnumMetadata;
 };
 
 interface TypeElementNodeDistribution {
@@ -147,7 +142,7 @@ const distributeTypeElementNodes = (node: ts.InterfaceDeclaration): TypeElementN
       if (ts.isMethodSignature(prop)) {
         distribution.methodNodes.push(prop);
       } else if (ts.isPropertySignature(prop)) {
-        if (prop.type && getTypeFromNode(prop.type) === dmInterfaceInter.BasicType.Function) {
+        if (prop.type && getTypeFromNode(prop.type) === BasicType.Function) {
           distribution.functionNodes.push(prop);
         } else {
           distribution.propertyNodes.push(prop);
@@ -161,10 +156,10 @@ const distributeTypeElementNodes = (node: ts.InterfaceDeclaration): TypeElementN
 
 const getPropertySignatureMetadata = (
   prop: ts.PropertySignature
-): dmInterfaceInter.IInterfacePropertyMetadata => {
+): dmIfIf.IInterfacePropertyMetadata => {
   const propId = idUtil.getName(prop as idUtil.NameableProxy);
   const optional = !!prop.questionToken;
-  let type: dmInterfaceInter.DataType = dmInterfaceInter.BasicType.Unknown;
+  let type: DataType = BasicType.Unknown;
   let typeArgs;
   if (prop.type) {
     type = getTypeFromNode(prop.type);
@@ -204,17 +199,15 @@ const getFunctionSignatureMetadata = (prop: ts.PropertySignature) => {
 const collectInterfaceMetadata = (
   node: ts.InterfaceDeclaration,
   filepath: string
-): dmInterfaceInter.IInterfaceMetadata => {
+): dmIfIf.IInterfaceMetadata => {
   const identifier = idUtil.getName(node as idUtil.NameableProxy);
   const { propertyNodes, functionNodes, methodNodes } = distributeTypeElementNodes(node);
 
-  const properties: dmInterfaceInter.IInterfacePropertyMetadata[] = propertyNodes.map(
+  const properties: dmIfIf.IInterfacePropertyMetadata[] = propertyNodes.map(
     getPropertySignatureMetadata
   );
-  const methods: dmInterfaceInter.IMethodMetadata[] = methodNodes.map(getMethodSignatureMetadata);
-  const funcs: dmInterfaceInter.IFunctionMetadata[] = functionNodes.map(
-    getFunctionSignatureMetadata
-  );
+  const methods: dmIfIf.IMethodMetadata[] = methodNodes.map(getMethodSignatureMetadata);
+  const funcs: dmIfIf.IFunctionMetadata[] = functionNodes.map(getFunctionSignatureMetadata);
 
   return {
     identifier,
@@ -231,9 +224,9 @@ const collectInterfaceMetadata = (
 //   it incrementally (or prompt the user to do it for use!)
 
 export function collectMetadata<T extends ts.Node>(
-  interfaces: dmInterfaceInter.INgInterfaceMetadataRoot,
+  interfaces: dmIfIf.INgInterfaceMetadataRoot,
   filepath: string,
-  callback: dmInterfaceInter.RootCollectorCallbackType
+  callback: dmIfIf.RootCollectorCallbackType
 ): ts.TransformerFactory<T> {
   return context => {
     const visit: ts.Visitor = node => {
@@ -242,45 +235,42 @@ export function collectMetadata<T extends ts.Node>(
         const identifier = idUtil.getName(node as idUtil.NameableProxy);
 
         if (decUtil.hasDecoratorWithName(node, decIdsUtil.COMPONENT)) {
-          const metadata: dmInterfaceInter.IComponentMetadata = {
+          const metadata: dmIfIf.IComponentMetadata = {
             filepath,
             identifier,
           };
-          callback.call(null, interfaces, dmInterfaceInter.RootType.components, metadata);
+          callback.call(null, interfaces, dmIfIf.RootType.components, metadata);
         } else if (decUtil.hasDecoratorWithName(node, decIdsUtil.DIRECTIVE)) {
-          const metadata: dmInterfaceInter.IDirectiveMetadata = {
+          const metadata: dmIfIf.IDirectiveMetadata = {
             filepath,
             identifier,
           };
-          callback.call(null, interfaces, dmInterfaceInter.RootType.directives, metadata);
+          callback.call(null, interfaces, dmIfIf.RootType.directives, metadata);
         } else if (decUtil.hasDecoratorWithName(node, decIdsUtil.NG_MODULE)) {
-          const metadata: dmInterfaceInter.INgModuleMetadata = {
+          const metadata: dmIfIf.INgModuleMetadata = {
             filepath,
             identifier,
           };
-          callback.call(null, interfaces, dmInterfaceInter.RootType.modules, metadata);
+          callback.call(null, interfaces, dmIfIf.RootType.modules, metadata);
         } else {
-          const metadata: dmInterfaceInter.IClassMetadata = {
+          const metadata: dmIfIf.IClassMetadata = {
             filepath,
             identifier,
           };
-          callback.call(null, interfaces, dmInterfaceInter.RootType.classes, metadata);
+          callback.call(null, interfaces, dmIfIf.RootType.classes, metadata);
         }
       }
 
       // Collect Enums
       if (ts.isEnumDeclaration(node)) {
-        const metadata: dmInterfaceInter.IEnumMetadata = collectEnumMetadata(node, filepath);
-        callback.call(null, interfaces, dmInterfaceInter.RootType.enums, metadata);
+        const metadata: dmIfIf.IEnumMetadata = collectEnumMetadata(node, filepath);
+        callback.call(null, interfaces, dmIfIf.RootType.enums, metadata);
       }
 
       // Collect Interfaces
       if (ts.isInterfaceDeclaration(node)) {
-        const metadata: dmInterfaceInter.IInterfaceMetadata = collectInterfaceMetadata(
-          node,
-          filepath
-        );
-        callback.call(null, interfaces, dmInterfaceInter.RootType.interfaces, metadata);
+        const metadata: dmIfIf.IInterfaceMetadata = collectInterfaceMetadata(node, filepath);
+        callback.call(null, interfaces, dmIfIf.RootType.interfaces, metadata);
       }
 
       return ts.visitEachChild(node, child => visit(child), context);

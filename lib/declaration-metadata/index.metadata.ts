@@ -3,15 +3,18 @@ import * as decIdsUtil from './../utils/decorator-identifier.util';
 import * as decUtil from './../utils/decorator.util';
 import * as idUtil from './../utils/identifier.util';
 
-import * as dmIfIf from './interface.interface';
-import { collectInterfaceMetadata } from './interface.metadata';
-
 import { IClassMetadata } from './class.interface';
+import { collectClassMetadata } from './class.metadata';
 import { IComponentMetadata } from './component.interface';
+import { collectComponentMetadata } from './component.metadata';
 import { IDirectiveMetadata } from './directive.interface';
+import { collectDirectiveMetadata } from './directive.metadata';
 import { IEnumMetadata } from './enum.interface';
 import { collectEnumMetadata } from './enum.metadata';
+import * as dmIfIf from './interface.interface';
+import { collectInterfaceMetadata } from './interface.metadata';
 import { INgModuleMetadata } from './ng-module.interface';
+import { collectNgModuleMetadata } from './ng-module.metadata';
 
 import { IRootMetadata, RootCollectorCallbackType, RootType } from './root.interface';
 import { rootCollectorCallback } from './root.metadata';
@@ -31,32 +34,17 @@ export function collectMetadata<T extends ts.Node>(
   return context => {
     const visit: ts.Visitor = node => {
       if (ts.isClassDeclaration(node)) {
-        // TODO (ryan): Encapsulate all of this casting!
-        const identifier = idUtil.getName(node as idUtil.NameableProxy);
-
         if (decUtil.hasDecoratorWithName(node, decIdsUtil.COMPONENT)) {
-          const metadata: IComponentMetadata = {
-            filepath,
-            identifier,
-          };
+          const metadata: IComponentMetadata = collectComponentMetadata(node, filepath);
           callback.call(null, interfaces, RootType.components, metadata);
         } else if (decUtil.hasDecoratorWithName(node, decIdsUtil.DIRECTIVE)) {
-          const metadata: IDirectiveMetadata = {
-            filepath,
-            identifier,
-          };
+          const metadata: IDirectiveMetadata = collectDirectiveMetadata(node, filepath);
           callback.call(null, interfaces, RootType.directives, metadata);
         } else if (decUtil.hasDecoratorWithName(node, decIdsUtil.NG_MODULE)) {
-          const metadata: INgModuleMetadata = {
-            filepath,
-            identifier,
-          };
+          const metadata: INgModuleMetadata = collectNgModuleMetadata(node, filepath);
           callback.call(null, interfaces, RootType.modules, metadata);
         } else {
-          const metadata: IClassMetadata = {
-            filepath,
-            identifier,
-          };
+          const metadata: IClassMetadata = collectClassMetadata(node, filepath);
           callback.call(null, interfaces, RootType.classes, metadata);
         }
       }

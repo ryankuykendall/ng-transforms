@@ -1,11 +1,11 @@
 import ts from 'typescript';
 import * as idUtil from './../utils/identifier.util';
-import { IClassMetadata } from './class.interface';
+import { INgModuleMetadata } from './ng-module.interface';
 
-export const collectClassMetadata = (
+export const collectNgModuleMetadata = (
   node: ts.ClassDeclaration,
   filepath: string
-): IClassMetadata => {
+): INgModuleMetadata => {
   const identifier = idUtil.getName(node as idUtil.NameableProxy);
   return {
     identifier,

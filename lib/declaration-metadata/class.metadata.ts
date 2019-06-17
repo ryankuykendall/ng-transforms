@@ -1,6 +1,12 @@
 import ts from 'typescript';
 import * as idUtil from './../utils/identifier.util';
-import { IClassMetadata, IGetAccessorMetadata, ISetAccessorMetadata } from './class.interface';
+import {
+  IClassMetadata,
+  IGetAccessorMetadata,
+  ISetAccessorMetadata,
+  IFunctionMetadata,
+  IMethodMetadata,
+} from './class.interface';
 
 export const collectClassMetadata = (
   node: ts.ClassDeclaration,
@@ -10,12 +16,16 @@ export const collectClassMetadata = (
 
   const memberDistribution = distributeMembers(node);
 
+  const functions = memberDistribution.functions.map(collectFunctionMetadata);
+  const methods = memberDistribution.methods.map(collectMethodMetadata);
   const getters = memberDistribution.getAccessors.map(collectGetAccessorMetadata);
   const setters = memberDistribution.setAccessors.map(collectSetAccessorMetadata);
 
   return {
     identifier,
     filepath,
+    functions,
+    methods,
     getters,
     setters,
   };
@@ -24,6 +34,7 @@ export const collectClassMetadata = (
 interface IMemberDistribution {
   constructorNode?: ts.ConstructorTypeNode;
   properties: ts.PropertyDeclaration[];
+  functions: ts.PropertyDeclaration[];
   methods: ts.MethodDeclaration[];
   getAccessors: ts.GetAccessorDeclaration[];
   setAccessors: ts.SetAccessorDeclaration[];
@@ -33,6 +44,7 @@ interface IMemberDistribution {
 const distributeMembers = (node: ts.ClassDeclaration): IMemberDistribution => {
   const distStub: IMemberDistribution = {
     properties: [],
+    functions: [],
     methods: [],
     getAccessors: [],
     setAccessors: [],
@@ -43,7 +55,15 @@ const distributeMembers = (node: ts.ClassDeclaration): IMemberDistribution => {
       if (ts.isConstructorTypeNode(member)) {
         dist.constructorNode = member;
       } else if (ts.isPropertyDeclaration(member)) {
-        dist.properties.push(member);
+        const propertyInitializer = member.initializer;
+        if (
+          propertyInitializer &&
+          (ts.isArrowFunction(propertyInitializer) || ts.isFunctionExpression(propertyInitializer))
+        ) {
+          dist.functions.push(member);
+        } else {
+          dist.properties.push(member);
+        }
       } else if (ts.isMethodDeclaration(member)) {
         dist.methods.push(member);
       } else if (ts.isGetAccessorDeclaration(member)) {
@@ -60,6 +80,20 @@ const distributeMembers = (node: ts.ClassDeclaration): IMemberDistribution => {
   );
 
   return distribution;
+};
+
+const collectFunctionMetadata = (func: ts.PropertyDeclaration): IFunctionMetadata => {
+  const identifier = idUtil.getName(func as idUtil.NameableProxy);
+  return {
+    identifier,
+  };
+};
+
+const collectMethodMetadata = (method: ts.MethodDeclaration): IMethodMetadata => {
+  const identifier = idUtil.getName(method as idUtil.NameableProxy);
+  return {
+    identifier,
+  };
 };
 
 const collectGetAccessorMetadata = (accessor: ts.GetAccessorDeclaration): IGetAccessorMetadata => {

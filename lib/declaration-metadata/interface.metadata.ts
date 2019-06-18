@@ -59,9 +59,9 @@ const getTypeArguments = (typeNode: ts.TypeReferenceNode): dmIfIf.ITypeArgument[
   return args;
 };
 
-const getMethodParameters = (
-  node: ts.MethodSignature | ts.FunctionTypeNode
-): dmIfIf.IMethodParameter[] => {
+type ParameterizedNode = ts.MethodSignature | ts.FunctionTypeNode | ts.FunctionLikeDeclaration;
+
+const getMethodParameters = (node: ParameterizedNode): dmIfIf.IMethodParameter[] => {
   return node.parameters.map(
     (param: ts.ParameterDeclaration): dmIfIf.IMethodParameter => {
       let type: DataType = BasicType.Unknown;
@@ -80,7 +80,7 @@ const getMethodParameters = (
   );
 };
 
-const getMethodMetadata = (node: ts.MethodSignature | ts.FunctionTypeNode): dmIfIf.IMethodBase => {
+export const getMethodMetadata = (node: ParameterizedNode): dmIfIf.IMethodBase => {
   let parameters = getMethodParameters(node);
 
   let returnType: dmIfIf.IReturn = {
@@ -95,6 +95,15 @@ const getMethodMetadata = (node: ts.MethodSignature | ts.FunctionTypeNode): dmIf
   return {
     parameters,
     returns: returnType,
+  };
+};
+
+export const getMethodMetadataStub = (): dmIfIf.IMethodBase => {
+  return {
+    parameters: [],
+    returns: {
+      type: BasicType.Void,
+    },
   };
 };
 

@@ -6,7 +6,12 @@ import {
   ISetAccessorMetadata,
   IFunctionMetadata,
   IMethodMetadata,
+  IPropertyMetadata,
+  IConstructorMetadata,
 } from './class.interface';
+import { getMethodMetadata, getMethodMetadataStub } from './interface.metadata';
+import { BasicType } from './base.metadata';
+import { IReturn, IMethodParameter } from './interface.interface';
 
 export const collectClassMetadata = (
   node: ts.ClassDeclaration,
@@ -15,7 +20,11 @@ export const collectClassMetadata = (
   const identifier = idUtil.getName(node as idUtil.NameableProxy);
 
   const memberDistribution = distributeMembers(node);
-
+  let constructorDef;
+  if (memberDistribution.constructorNode) {
+    constructorDef = collectConstructorMetadata(memberDistribution.constructorNode);
+  }
+  const properties = memberDistribution.properties.map(collectPropertyMetadata);
   const functions = memberDistribution.functions.map(collectFunctionMetadata);
   const methods = memberDistribution.methods.map(collectMethodMetadata);
   const getters = memberDistribution.getAccessors.map(collectGetAccessorMetadata);
@@ -24,6 +33,8 @@ export const collectClassMetadata = (
   return {
     identifier,
     filepath,
+    constructorDef,
+    properties,
     functions,
     methods,
     getters,
@@ -32,7 +43,7 @@ export const collectClassMetadata = (
 };
 
 interface IMemberDistribution {
-  constructorNode?: ts.ConstructorTypeNode;
+  constructorNode?: ts.ConstructorDeclaration;
   properties: ts.PropertyDeclaration[];
   functions: ts.PropertyDeclaration[];
   methods: ts.MethodDeclaration[];
@@ -52,7 +63,7 @@ const distributeMembers = (node: ts.ClassDeclaration): IMemberDistribution => {
   };
   const distribution: IMemberDistribution = node.members.reduce(
     (dist: IMemberDistribution, member: ts.ClassElement) => {
-      if (ts.isConstructorTypeNode(member)) {
+      if (ts.isConstructorDeclaration(member)) {
         dist.constructorNode = member;
       } else if (ts.isPropertyDeclaration(member)) {
         const propertyInitializer = member.initializer;
@@ -82,30 +93,60 @@ const distributeMembers = (node: ts.ClassDeclaration): IMemberDistribution => {
   return distribution;
 };
 
-const collectFunctionMetadata = (func: ts.PropertyDeclaration): IFunctionMetadata => {
-  const identifier = idUtil.getName(func as idUtil.NameableProxy);
+const collectConstructorMetadata = (node: ts.ConstructorDeclaration): IConstructorMetadata => {
+  const methodMetadata = getMethodMetadata(node);
+  return {
+    ...methodMetadata,
+  };
+};
+
+const collectPropertyMetadata = (property: ts.PropertyDeclaration): IPropertyMetadata => {
+  const identifier = idUtil.getName(property as idUtil.NameableProxy);
   return {
     identifier,
+  };
+};
+
+const collectFunctionMetadata = (func: ts.PropertyDeclaration): IFunctionMetadata => {
+  const identifier = idUtil.getName(func as idUtil.NameableProxy);
+  let methodMetadata = getMethodMetadataStub();
+
+  if (func.initializer) {
+    methodMetadata = getMethodMetadata(func.initializer as ts.FunctionExpression);
+  }
+
+  return {
+    identifier,
+    ...methodMetadata,
   };
 };
 
 const collectMethodMetadata = (method: ts.MethodDeclaration): IMethodMetadata => {
   const identifier = idUtil.getName(method as idUtil.NameableProxy);
+  const methodMetadata = getMethodMetadata(method);
+
   return {
     identifier,
+    ...methodMetadata,
   };
 };
 
 const collectGetAccessorMetadata = (accessor: ts.GetAccessorDeclaration): IGetAccessorMetadata => {
   const identifier = idUtil.getName(accessor as idUtil.NameableProxy);
+  const methodMetadata = getMethodMetadata(accessor);
+
   return {
     identifier,
+    ...methodMetadata,
   };
 };
 
 const collectSetAccessorMetadata = (accessor: ts.SetAccessorDeclaration): ISetAccessorMetadata => {
   const identifier = idUtil.getName(accessor as idUtil.NameableProxy);
+  const methodMetadata = getMethodMetadata(accessor);
+
   return {
     identifier,
+    ...methodMetadata,
   };
 };

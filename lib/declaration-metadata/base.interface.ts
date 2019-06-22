@@ -7,3 +7,7 @@ export interface IHasIdentifier {
 export interface IHasFilepath {
   filepath: string;
 }
+
+export interface IOptional {
+  optional: boolean;
+}

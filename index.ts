@@ -17,6 +17,7 @@ import chalk from 'chalk';
 import * as glob from 'glob';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getRootMetadataStub } from './lib/declaration-metadata/root.metadata';
 
 const packageJSON = fileUtil.loadJSONFile('package.json');
 
@@ -321,8 +322,9 @@ program
     const interfaceMatches = findFilesWithASTMatchingSelector(tsFiles, NgAstSelector.NgInterfaces);
 
     // TODO (ryan): Filter out all of the test files/specs.
-    const interfaces: dm.IRootMetadata = {};
+    const interfaces: dm.IRootMetadata = getRootMetadataStub();
 
+    // TODO (ryan): Update this to stop using a transform to drive the visitor pattern.
     const transformationResults = interfaceMatches.forEach(({ filepath, source, ast }) => {
       ts.transform(ast, [dm.collectMetadata(interfaces, filepath, dm.rootCollectorCallback)]);
     });

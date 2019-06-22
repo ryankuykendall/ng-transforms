@@ -9,6 +9,7 @@ export interface InterfaceExample {
   someNumber: number;
   someStrCollection: string[];
   someOptionalBoolean?: boolean;
+  someUnionType: number | boolean | undefined;
 
   someFunc1?: () => number;
   someFunc2: (arg1: string) => number;

@@ -9,9 +9,9 @@ import {
   IPropertyMetadata,
   IConstructorMetadata,
 } from './class.interface';
-import { getMethodMetadata, getMethodMetadataStub } from './interface.metadata';
+import { getMethodMetadata, getMethodMetadataStub } from './method.metadata';
 import { BasicType } from './base.metadata';
-import { IReturn, IMethodParameter } from './interface.interface';
+import { IReturn, IMethodParameter } from './method.interface';
 
 export const collectClassMetadata = (
   node: ts.ClassDeclaration,

@@ -1,32 +1,10 @@
-import { IHasFilepath, IHasIdentifier } from './base.interface';
-import { DataType } from './base.metadata';
-
-/** Arguments */
-export interface ITypeArgument {
-  type: DataType;
-  typeArguments?: ITypeArgument[];
-}
-
-export interface IMethodParameter extends IHasIdentifier, ITypeArgument {}
-
-export interface IReturn extends ITypeArgument {}
-
-export interface IMethodBase {
-  parameters: IMethodParameter[];
-  returns: IReturn;
-}
-
-export interface IMethodMetadata extends IHasIdentifier, IMethodBase {}
-export interface IFunctionMetadata extends IMethodMetadata {
-  optional: boolean;
-}
+import { IHasFilepath, IHasIdentifier, IOptional } from './base.interface';
+import { IFunctionMetadata } from './function.interface';
+import { IMethodMetadata } from './method.interface';
+import { ITypeComposition } from './type.interface';
 
 /** Interfaces */
-export interface IInterfacePropertyMetadata extends IHasIdentifier {
-  optional: boolean;
-  type: DataType | string;
-  typeArguments?: ITypeArgument[];
-}
+export interface IInterfacePropertyMetadata extends IHasIdentifier, ITypeComposition, IOptional {}
 
 export interface IInterfaceMetadata extends IHasIdentifier, IHasFilepath {
   functions: IFunctionMetadata[];

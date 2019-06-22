@@ -18,6 +18,8 @@ import { collectNgModuleMetadata } from './ng-module.metadata';
 
 import { IRootMetadata, RootCollectorCallbackType, RootType } from './root.interface';
 import { rootCollectorCallback } from './root.metadata';
+import { ITypeAliasMetadata } from './type-aliases.interface';
+import { collectTypeAliasMetadata } from './type-aliases.metadata';
 
 export { IRootMetadata, rootCollectorCallback };
 
@@ -36,29 +38,34 @@ export function collectMetadata<T extends ts.Node>(
       if (ts.isClassDeclaration(node)) {
         if (decUtil.hasDecoratorWithName(node, decIdsUtil.COMPONENT)) {
           const metadata: IComponentMetadata = collectComponentMetadata(node, filepath);
-          callback.call(null, interfaces, RootType.components, metadata);
+          callback.call(null, interfaces, RootType.Components, metadata);
         } else if (decUtil.hasDecoratorWithName(node, decIdsUtil.DIRECTIVE)) {
           const metadata: IDirectiveMetadata = collectDirectiveMetadata(node, filepath);
-          callback.call(null, interfaces, RootType.directives, metadata);
+          callback.call(null, interfaces, RootType.Directives, metadata);
         } else if (decUtil.hasDecoratorWithName(node, decIdsUtil.NG_MODULE)) {
           const metadata: INgModuleMetadata = collectNgModuleMetadata(node, filepath);
-          callback.call(null, interfaces, RootType.modules, metadata);
+          callback.call(null, interfaces, RootType.Modules, metadata);
         } else {
           const metadata: IClassMetadata = collectClassMetadata(node, filepath);
-          callback.call(null, interfaces, RootType.classes, metadata);
+          callback.call(null, interfaces, RootType.Classes, metadata);
         }
       }
 
       // Collect Enums
       if (ts.isEnumDeclaration(node)) {
         const metadata: IEnumMetadata = collectEnumMetadata(node, filepath);
-        callback.call(null, interfaces, RootType.enums, metadata);
+        callback.call(null, interfaces, RootType.Enums, metadata);
       }
 
       // Collect Interfaces
       if (ts.isInterfaceDeclaration(node)) {
         const metadata: dmIfIf.IInterfaceMetadata = collectInterfaceMetadata(node, filepath);
-        callback.call(null, interfaces, RootType.interfaces, metadata);
+        callback.call(null, interfaces, RootType.Interfaces, metadata);
+      }
+
+      if (ts.isTypeAliasDeclaration(node)) {
+        const metadata: ITypeAliasMetadata = collectTypeAliasMetadata(node, filepath);
+        callback.call(null, interfaces, RootType.TypeAliases, metadata);
       }
 
       return ts.visitEachChild(node, child => visit(child), context);

@@ -1,5 +1,5 @@
 import { IHasFilepath, IHasIdentifier } from './base.interface';
-import { IMethodBase } from './interface.interface';
+import { IMethodBase } from './method.interface';
 
 export interface IConstructorMetadata extends IMethodBase {}
 export interface IPropertyMetadata extends IHasIdentifier {}

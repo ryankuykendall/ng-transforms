@@ -1,9 +1,11 @@
 @SomeDecorator()
-export class BasicClass extends Foo implements Bar {
+export class BasicClass extends Foo implements Bar, SomeInterface {
   public someStringProp: string = 'test-string';
-  private _somePrivateNumberProp: number = 0;
+  private _somePrivateNumberProp: number | undefined = 0;
   protected _someProtectedBooleanProp: boolean = false;
-  private readonly _PrivateReadonlyBooleanProp: boolean = true;
+  private readonly _privateReadonlyBooleanProp: boolean = true;
+  // NOTE (ryan): Does typescript have an API for inferring type?
+  someCollectionOfNumbers = [1, 2, 3];
 
   get numberProp(): number {
     return this._somePrivateNumberProp;
@@ -20,14 +22,18 @@ export class BasicClass extends Foo implements Bar {
     return this.someStringProp;
   }
 
-  someFunc = function(arg1: boolean, arg2: string): number {
+  public getNumberProp(): number | undefined {
+    return this._somePrivateNumberProp;
+  }
+
+  private someFunc = function(arg1: boolean, arg2: string): number {
     if (arg1 && arg2.length > 4) {
       return 5;
     }
     return this._somePrivateNumberProp;
   };
 
-  someArrayFunc = (arg1: boolean, arg2: string): number => {
+  protected someArrayFunc = (arg1: boolean, arg2: string): number => {
     if (arg1 && arg2.length > 4) {
       return 5;
     }

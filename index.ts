@@ -70,7 +70,7 @@ const dumpASTNode = (node: ts.Node, index: number = 0, depth: number = 0, indent
     console.log(
       `${index}.`.padStart(depth * indent, ' '),
       chalk.yellow(kind),
-      chalk.bgBlueBright(node.escapedText as string),
+      chalk.bgBlueBright.black.bold(node.escapedText as string),
       attrs.join(', ')
     );
   } else {
@@ -164,6 +164,8 @@ program.command('dump <dir>').action((dir: string, cmd: program.Command) => {
   });
 });
 
+// TODO (ryan): Improve usability/scannability by parsing node types from selector
+//   and then using them to highlight matching nodes in output.
 program
   .command('query <selector> <dir>')
   .option('-a --ancestor <ancestor>', 'Backtrack to first ancestor of SyntaxKind')

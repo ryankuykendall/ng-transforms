@@ -1,13 +1,8 @@
 import ts from 'typescript';
 import * as idUtil from './../utils/identifier.util';
-import { TypeGroup } from './base.metadata';
 import { IMethodBase, IMethodParameter, IReturn } from './method.interface';
-import {
-  getAllTypesFromNode,
-  getTypeCompositionStub,
-  getTypeGroupFromNode,
-  getTypeCompositionFromNode,
-} from './type.metadata';
+import { getTypeCompositionFromNode } from './type.metadata';
+import { BasicType } from './base.metadata';
 
 type ParameterizedNode = ts.MethodSignature | ts.FunctionTypeNode | ts.FunctionLikeDeclaration;
 
@@ -51,7 +46,7 @@ export const getMethodMetadataStub = (): IMethodBase => {
 
 export const getReturnMetadataStub = (): IReturn => {
   return {
-    typeGroup: TypeGroup.Unary,
-    types: [],
+    type: BasicType.Unknown,
+    args: [],
   };
 };

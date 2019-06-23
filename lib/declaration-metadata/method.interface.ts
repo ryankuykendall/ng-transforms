@@ -1,8 +1,8 @@
 import { IHasIdentifier, IHasFilepath } from './base.interface';
-import { ITypeComposition } from './type.interface';
+import { IType } from './type.interface';
 
-export interface IMethodParameter extends IHasIdentifier, ITypeComposition {}
-export interface IReturn extends ITypeComposition {}
+export interface IMethodParameter extends IHasIdentifier {}
+export interface IReturn extends IType {}
 
 export interface IMethodBase {
   parameters: IMethodParameter[];

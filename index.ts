@@ -42,7 +42,7 @@ enum NgAstSelector {
   ComponentDecoratorContainingStyleUrls = "ClassDeclaration Decorator:has(Identifier[name='Component']) PropertyAssignment:has(Identifier[name='styleUrls']) StringLiteral",
   // For the following, would still need to backtrack to ImportDeclaration
   NgImportComponentDecoratorFromCore = "ImportDeclaration:has(ImportClause:has(NamedImports ImportSpecifier Identifier[name='Component'])) StringLiteral[value=/@angular/][value=/core/]",
-  NgInterfaces = 'ClassDeclaration, InterfaceDeclaration, EnumDeclaration',
+  NgInterfaces = 'ClassDeclaration, InterfaceDeclaration, EnumDeclaration, SourceFile > FunctionDeclaration, SourceFile > ArrowFunction, SourceFile > TypeAliasDeclaration',
 }
 
 interface IFileAST {

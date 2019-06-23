@@ -1,4 +1,4 @@
 import { IHasFilepath, IHasIdentifier } from './base.interface';
-import { ITypeComposition } from './type.interface';
+import { IType } from './type.interface';
 
-export interface ITypeAliasMetadata extends IHasIdentifier, IHasFilepath, ITypeComposition {}
+export interface ITypeAliasMetadata extends IHasIdentifier, IHasFilepath, IType {}

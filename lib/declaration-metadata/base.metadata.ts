@@ -1,25 +1,16 @@
 import ts from 'typescript';
 
-export enum TypeGroup {
-  Unary = 'unary',
-  Union = 'union', // Unions take precedence over intersections
-  Intersection = 'intersection',
-}
-
-export const typeGroupMap: Map<ts.SyntaxKind, TypeGroup> = new Map([
-  [ts.SyntaxKind.UnionType, TypeGroup.Unary],
-  [ts.SyntaxKind.IntersectionType, TypeGroup.Intersection],
-]);
-
 export enum BasicType {
   Any = 'any',
   Boolean = 'boolean',
   Enum = 'enum',
   Function = 'function',
+  Intersection = 'intersection',
   Null = 'null',
   Number = 'number',
   String = 'string',
   Undefined = 'undefined',
+  Union = 'union',
   Unknown = '[unknown]',
   Void = 'void',
 }
@@ -44,10 +35,12 @@ export const basicTypeMap: Map<ts.SyntaxKind, DataType> = new Map([
   [ts.SyntaxKind.BooleanKeyword, BasicType.Boolean],
   [ts.SyntaxKind.EnumKeyword, BasicType.Enum],
   [ts.SyntaxKind.FunctionType, BasicType.Function],
+  [ts.SyntaxKind.IntersectionType, BasicType.Intersection],
   [ts.SyntaxKind.NullKeyword, BasicType.Null],
   [ts.SyntaxKind.NumberKeyword, BasicType.Number],
   [ts.SyntaxKind.StringKeyword, BasicType.String],
   [ts.SyntaxKind.UndefinedKeyword, BasicType.Undefined],
+  [ts.SyntaxKind.UnionType, BasicType.Union],
   [ts.SyntaxKind.VoidKeyword, BasicType.Void],
 ]);
 

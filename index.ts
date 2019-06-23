@@ -66,12 +66,21 @@ const dumpASTNode = (node: ts.Node, index: number = 0, depth: number = 0, indent
     .replace(/\n/g, ' ')
     .substring(0, 32);
   const attrs = Object.keys(node).filter(k => !TS_NODE_BASE_ATTRS.has(k));
-  console.log(
-    `${index}.`.padStart(depth * indent, ' '),
-    chalk.yellow(kind),
-    attrs.join(', '),
-    summary
-  );
+  if (ts.isIdentifier(node)) {
+    console.log(
+      `${index}.`.padStart(depth * indent, ' '),
+      chalk.yellow(kind),
+      chalk.bgBlueBright(node.escapedText as string),
+      attrs.join(', ')
+    );
+  } else {
+    console.log(
+      `${index}.`.padStart(depth * indent, ' '),
+      chalk.yellow(kind),
+      attrs.join(', '),
+      summary
+    );
+  }
   let childIndex = 0;
   node.forEachChild((node: ts.Node) => {
     dumpASTNode(node, childIndex, depth + 1, indent);
@@ -156,7 +165,7 @@ program.command('dump <dir>').action((dir: string, cmd: program.Command) => {
 });
 
 program
-  .command('dump-selector <selector> <dir>')
+  .command('query <selector> <dir>')
   .option('-a --ancestor <ancestor>', 'Backtrack to first ancestor of SyntaxKind')
   .action((selector: string, dir: string, cmd: program.Command) => {
     const tsFiles = getTypescriptFileASTsFromDirectory(dir);

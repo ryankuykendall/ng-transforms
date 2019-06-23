@@ -40,3 +40,29 @@ stubs/ Contains base Angular files used for generating code.
 ## Useful tools for development
 
 - [https://ts-ast-viewer.com/](https://ts-ast-viewer.com/)
+
+## Example usage
+
+In the specified directory, get all arrow functions defined in a variable statement that are at the root of a source file. Then ascend the ancestry to the VariableStatement and display the results.
+
+```
+$ npm run cli query "SourceFile > VariableStatement ArrowFunction" <directory> --ancestor VariableStatement
+```
+
+In the specified directory, get all decorators with the name 'Component.' Then ascend the ancestry to the associated class declaration and display the results.
+
+```
+$ npm run cli query "Decorator[expression.expression.escapedText=Component]" <directory> --ancestor ClassDeclaration
+```
+
+Same as above, but in this case getting ClassDeclarations with the Directive decorator:
+
+```
+$ npm run cli query "Decorator[expression.expression.escapedText=Directive]" <directory> --ancestor ClassDeclaration
+```
+
+And NgModules:
+
+```
+$ npm run cli query "Decorator[expression.expression.escapedText=NgModule]" <directory> --ancestor ClassDeclaration
+```

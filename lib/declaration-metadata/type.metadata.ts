@@ -35,23 +35,47 @@ export const getTypeCompositionFromNode = (typeNode: ts.TypeNode): IType => {
 };
 
 const getTypeArguments = (typeNode: ts.TypeReferenceNode): IType[] => {
-  const typeArgumentsNode = typeNode.typeArguments;
   let args: IType[] = [];
+  const argumentNodes: ts.TypeNode[] = [];
+  if (typeNode.typeArguments) {
+    typeNode.typeArguments.forEach(childTypeNode => {
+      argumentNodes.push(childTypeNode);
+    });
+  }
 
-  if (typeArgumentsNode && typeArgumentsNode.length > 0) {
-    typeArgumentsNode.forEach(childTypeNode => {
+  if (ts.isIntersectionTypeNode(typeNode) || ts.isUnionTypeNode(typeNode)) {
+    typeNode.types.forEach(childTypeNode => {
+      argumentNodes.push(childTypeNode);
+    });
+  }
+
+  if (ts.isParenthesizedTypeNode(typeNode)) {
+    argumentNodes.push(typeNode.type);
+  }
+
+  if (argumentNodes.length > 0) {
+    argumentNodes.forEach(childTypeNode => {
       const childType = getTypeFromNode(childTypeNode);
       const childTypeArg: IType = {
         type: childType,
       };
 
       // Recurse to capture nested child types.
-      if (ts.isTypeReferenceNode(childTypeNode)) {
-        childTypeArg.args = getTypeArguments(childTypeNode);
-      }
-
-      if (ts.isArrayTypeNode(childTypeNode)) {
+      if (
+        ts.isTypeReferenceNode(childTypeNode) ||
+        ts.isIntersectionTypeNode(childTypeNode) ||
+        ts.isUnionTypeNode(childTypeNode) ||
+        ts.isParenthesizedTypeNode(childTypeNode)
+      ) {
+        childTypeArg.args = getTypeArguments(childTypeNode as ts.TypeReferenceNode);
+      } else if (ts.isArrayTypeNode(childTypeNode)) {
         childTypeArg.args = [getTypeArgumentsFromArrayType(childTypeNode)];
+      } else {
+        console.warn(
+          'Unrecognized childNodeType in',
+          ts.SyntaxKind[typeNode.kind],
+          ts.SyntaxKind[childTypeNode.kind]
+        );
       }
 
       args.push(childTypeArg);

@@ -8,16 +8,19 @@ import {
   IMethodMetadata,
   IPropertyMetadata,
   IConstructorMetadata,
+  IHeritageMetadata,
 } from './class.interface';
 import { getMethodMetadata, getMethodMetadataStub } from './method.metadata';
 import { BasicType } from './base.metadata';
 import { IReturn, IMethodParameter } from './method.interface';
+import { getTypeCompositionFromNode } from './type.metadata';
 
 export const collectClassMetadata = (
   node: ts.ClassDeclaration,
   filepath: string
 ): IClassMetadata => {
   const identifier = idUtil.getName(node as idUtil.NameableProxy);
+  const heritage = collectHeritageMetadata(node);
 
   const memberDistribution = distributeMembers(node);
   let constructorDef;
@@ -33,6 +36,7 @@ export const collectClassMetadata = (
   return {
     identifier,
     filepath,
+    heritage,
     constructorDef,
     properties,
     functions,
@@ -51,6 +55,24 @@ interface IMemberDistribution {
   setAccessors: ts.SetAccessorDeclaration[];
   unknownDistribution: string[];
 }
+
+const collectHeritageMetadata = (node: ts.ClassDeclaration): IHeritageMetadata | undefined => {
+  if (node.heritageClauses) {
+    const heritage: IHeritageMetadata = {};
+    node.heritageClauses.forEach((clause: ts.HeritageClause) => {
+      const clauseText = clause.getText();
+      if (clauseText.match(/^extends/)) {
+        heritage.extendsDef = getTypeCompositionFromNode(clause.types[0]);
+      } else {
+        heritage.implementsDef = clause.types.map(getTypeCompositionFromNode);
+      }
+    });
+
+    return heritage;
+  }
+
+  return;
+};
 
 const distributeMembers = (node: ts.ClassDeclaration): IMemberDistribution => {
   const distStub: IMemberDistribution = {
@@ -95,9 +117,19 @@ const distributeMembers = (node: ts.ClassDeclaration): IMemberDistribution => {
 
 const collectConstructorMetadata = (node: ts.ConstructorDeclaration): IConstructorMetadata => {
   const methodMetadata = getMethodMetadata(node);
+  const injectedProperties = getConstructorInjectedProperties(node);
+
+  // TODO (ryan): Make sure to grab dependency injected properties.
   return {
     ...methodMetadata,
+    injectedProperties,
   };
+};
+
+const getConstructorInjectedProperties = (node: ts.ConstructorDeclaration): IPropertyMetadata[] => {
+  // TODO (ryan): Capture this we know these are dependency injected because they are passed with
+  //   public, protected, or private
+  return [];
 };
 
 const collectPropertyMetadata = (property: ts.PropertyDeclaration): IPropertyMetadata => {

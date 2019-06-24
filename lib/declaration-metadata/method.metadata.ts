@@ -46,7 +46,7 @@ export const getMethodMetadataStub = (): IMethodBase => {
 
 export const getReturnMetadataStub = (): IReturn => {
   return {
-    type: BasicType.Unknown,
+    type: BasicType.Void,
     args: [],
   };
 };

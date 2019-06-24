@@ -11,8 +11,6 @@ import {
   IHeritageMetadata,
 } from './class.interface';
 import { getMethodMetadata, getMethodMetadataStub } from './method.metadata';
-import { BasicType } from './base.metadata';
-import { IReturn, IMethodParameter } from './method.interface';
 import { getTypeCompositionFromNode } from './type.metadata';
 
 export const collectClassMetadata = (
@@ -62,9 +60,20 @@ const collectHeritageMetadata = (node: ts.ClassDeclaration): IHeritageMetadata |
     node.heritageClauses.forEach((clause: ts.HeritageClause) => {
       const clauseText = clause.getText();
       if (clauseText.match(/^extends/)) {
-        heritage.extendsDef = getTypeCompositionFromNode(clause.types[0]);
+        const extendsType = clause.types[0];
+        const identifier = extendsType.expression.getText();
+        const composition = getTypeCompositionFromNode(clause.types[0]);
+        composition.type = identifier;
+        heritage.extendsDef = composition;
       } else {
-        heritage.implementsDef = clause.types.map(getTypeCompositionFromNode);
+        heritage.implementsDef = clause.types.map(
+          (implementsType: ts.ExpressionWithTypeArguments) => {
+            const identifier = implementsType.expression.getText();
+            const compositon = getTypeCompositionFromNode(implementsType);
+            compositon.type = identifier;
+            return compositon;
+          }
+        );
       }
     });
 

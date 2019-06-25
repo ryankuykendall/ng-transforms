@@ -1,20 +1,26 @@
 import ts from 'typescript';
 import { basicTypeMap, complexTypeMap, objectTypeMap, BasicType, DataType } from './base.metadata';
 import { IType } from './type.interface';
+import chalk from 'chalk';
 
 export const getTypeFromNode = (typeNode: ts.TypeNode): DataType => {
-  let type = basicTypeMap.get(typeNode.kind);
-  if (type) {
-    return type;
-  }
-  type = objectTypeMap.get(typeNode.kind);
-  if (type) {
-    return type;
-  }
-  const typeHandler = complexTypeMap.get(typeNode.kind);
-  if (typeHandler) {
-    type = typeHandler.call(null, typeNode);
-    return type;
+  // TODO (ryan): Investigate! Somehow in the compiled TS typeNode can be undefined!
+  // To repro run query:
+  //   ./dist/index.js collect-interface-declarations ~/ng-components/components/src/material/tabs/.
+  if (typeNode) {
+    let type = basicTypeMap.get(typeNode.kind);
+    if (type) {
+      return type;
+    }
+    type = objectTypeMap.get(typeNode.kind);
+    if (type) {
+      return type;
+    }
+    const typeHandler = complexTypeMap.get(typeNode.kind);
+    if (typeHandler) {
+      type = typeHandler.call(null, typeNode);
+      return type;
+    }
   }
 
   return BasicType.Unknown;
@@ -36,6 +42,13 @@ export const getTypeCompositionFromNode = (typeNode: ts.TypeNode): IType => {
 
 const getTypeArguments = (typeNode: ts.TypeReferenceNode): IType[] => {
   let args: IType[] = [];
+  // TODO (ryan): Investigate! Somehow in the compiled TS typeNode can be undefined!
+  //   Perhaps when we hit a LiteralKeyword?
+  // To repro run query:
+  //   ./dist/index.js collect-interface-declarations ~/ng-components/components/src/material/tabs/.
+  // Also make sure to address any of the Unrecognized childNodeTypes.
+  if (!typeNode) return args;
+
   const argumentNodes: ts.TypeNode[] = [];
   if (typeNode.typeArguments) {
     typeNode.typeArguments.forEach(childTypeNode => {
@@ -74,7 +87,9 @@ const getTypeArguments = (typeNode: ts.TypeReferenceNode): IType[] => {
         console.warn(
           'Unrecognized childNodeType in',
           ts.SyntaxKind[typeNode.kind],
-          ts.SyntaxKind[childTypeNode.kind]
+          ts.SyntaxKind[childTypeNode.kind],
+          chalk.bgBlueBright.black(typeNode.getFullText()),
+          chalk.bgYellow.black(childTypeNode.getFullText())
         );
       }
 

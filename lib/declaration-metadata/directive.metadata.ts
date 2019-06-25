@@ -1,14 +1,12 @@
 import ts from 'typescript';
-import * as idUtil from './../utils/identifier.util';
 import { IDirectiveMetadata } from './directive.interface';
+import { collectClassMetadata } from './class.metadata';
 
 export const collectDirectiveMetadata = (
   node: ts.ClassDeclaration,
   filepath: string
 ): IDirectiveMetadata => {
-  const identifier = idUtil.getName(node as idUtil.NameableProxy);
-  return {
-    identifier,
-    filepath,
-  };
+  const metadata = collectClassMetadata(node, filepath);
+  // Continue collecting directive specific metadata
+  return metadata;
 };

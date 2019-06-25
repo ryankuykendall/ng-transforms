@@ -1,3 +1,3 @@
-import { IHasFilepath, IHasIdentifier } from './base.interface';
+import { IClassMetadata } from './class.interface';
 
-export interface IDirectiveMetadata extends IHasFilepath, IHasIdentifier {}
+export interface IDirectiveMetadata extends IClassMetadata {}

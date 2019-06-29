@@ -12,7 +12,7 @@ const getMethodParameters = (node: ParameterizedNode): IMethodParameter[] => {
       const composition = getTypeCompositionFromNode(param.type as ts.TypeReferenceNode);
 
       return {
-        identifier: idUtil.getName(param as idUtil.NameableProxy),
+        identifier: idUtil.getName(param as idUtil.INameableProxy),
         ...composition,
       };
     }

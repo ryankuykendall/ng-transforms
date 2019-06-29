@@ -17,7 +17,7 @@ export const collectClassMetadata = (
   node: ts.ClassDeclaration,
   filepath: string
 ): IClassMetadata => {
-  const identifier = idUtil.getName(node as idUtil.NameableProxy);
+  const identifier = idUtil.getName(node as idUtil.INameableProxy);
   const heritage = collectHeritageMetadata(node);
 
   const memberDistribution = distributeMembers(node);
@@ -61,14 +61,20 @@ const collectHeritageMetadata = (node: ts.ClassDeclaration): IHeritageMetadata |
       const clauseText = clause.getText();
       if (clauseText.match(/^extends/)) {
         const extendsType = clause.types[0];
-        const identifier = extendsType.expression.getText();
+        const identifier = idUtil.getExpressionIdentifier(
+          // QUESTION (ryan): Why is this necessary here but not
+          //   with INameableProxy?
+          (extendsType as unknown) as idUtil.IExpressibleProxy
+        );
         const composition = getTypeCompositionFromNode(clause.types[0]);
         composition.type = identifier;
         heritage.extendsDef = composition;
       } else {
         heritage.implementsDef = clause.types.map(
           (implementsType: ts.ExpressionWithTypeArguments) => {
-            const identifier = implementsType.expression.getText();
+            const identifier = idUtil.getExpressionIdentifier(
+              (implementsType as unknown) as idUtil.IExpressibleProxy
+            );
             const compositon = getTypeCompositionFromNode(implementsType);
             compositon.type = identifier;
             return compositon;
@@ -142,14 +148,14 @@ const getConstructorInjectedProperties = (node: ts.ConstructorDeclaration): IPro
 };
 
 const collectPropertyMetadata = (property: ts.PropertyDeclaration): IPropertyMetadata => {
-  const identifier = idUtil.getName(property as idUtil.NameableProxy);
+  const identifier = idUtil.getName(property as idUtil.INameableProxy);
   return {
     identifier,
   };
 };
 
 const collectFunctionMetadata = (func: ts.PropertyDeclaration): IFunctionMetadata => {
-  const identifier = idUtil.getName(func as idUtil.NameableProxy);
+  const identifier = idUtil.getName(func as idUtil.INameableProxy);
   let methodMetadata = getMethodMetadataStub();
 
   if (func.initializer) {
@@ -163,7 +169,7 @@ const collectFunctionMetadata = (func: ts.PropertyDeclaration): IFunctionMetadat
 };
 
 const collectMethodMetadata = (method: ts.MethodDeclaration): IMethodMetadata => {
-  const identifier = idUtil.getName(method as idUtil.NameableProxy);
+  const identifier = idUtil.getName(method as idUtil.INameableProxy);
   const methodMetadata = getMethodMetadata(method);
 
   return {
@@ -173,7 +179,7 @@ const collectMethodMetadata = (method: ts.MethodDeclaration): IMethodMetadata =>
 };
 
 const collectGetAccessorMetadata = (accessor: ts.GetAccessorDeclaration): IGetAccessorMetadata => {
-  const identifier = idUtil.getName(accessor as idUtil.NameableProxy);
+  const identifier = idUtil.getName(accessor as idUtil.INameableProxy);
   const methodMetadata = getMethodMetadata(accessor);
 
   return {
@@ -183,7 +189,7 @@ const collectGetAccessorMetadata = (accessor: ts.GetAccessorDeclaration): IGetAc
 };
 
 const collectSetAccessorMetadata = (accessor: ts.SetAccessorDeclaration): ISetAccessorMetadata => {
-  const identifier = idUtil.getName(accessor as idUtil.NameableProxy);
+  const identifier = idUtil.getName(accessor as idUtil.INameableProxy);
   const methodMetadata = getMethodMetadata(accessor);
 
   return {

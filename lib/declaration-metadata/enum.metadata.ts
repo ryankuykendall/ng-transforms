@@ -3,9 +3,9 @@ import * as idUtil from './../utils/identifier.util';
 import { EnumMemberType, EnumMemberMetadataType, IEnumMetadata } from './enum.interface';
 
 export const collectEnumMetadata = (node: ts.EnumDeclaration, filepath: string): IEnumMetadata => {
-  const identifier = idUtil.getName(node as idUtil.NameableProxy);
+  const identifier = idUtil.getName(node as idUtil.INameableProxy);
   const members = node.members.map((member: ts.EnumMember, index) => {
-    const memberId = idUtil.getName(member as idUtil.NameableProxy);
+    const memberId = idUtil.getName(member as idUtil.INameableProxy);
     let value: number | string = index;
     let type = EnumMemberType.Number;
     if (member.initializer) {

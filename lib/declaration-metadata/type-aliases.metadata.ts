@@ -7,7 +7,7 @@ export const collectTypeAliasMetadata = (
   node: ts.TypeAliasDeclaration,
   filepath: string
 ): ITypeAliasMetadata => {
-  const identifier = idUtil.getName(node as idUtil.NameableProxy);
+  const identifier = idUtil.getName(node as idUtil.INameableProxy);
   const typeComposition = getTypeCompositionFromNode(node.type);
 
   return {

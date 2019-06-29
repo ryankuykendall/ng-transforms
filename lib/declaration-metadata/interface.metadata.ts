@@ -36,7 +36,7 @@ const distributeTypeElementNodes = (node: ts.InterfaceDeclaration): TypeElementN
 const getPropertySignatureMetadata = (
   prop: ts.PropertySignature
 ): dmIfIf.IInterfacePropertyMetadata => {
-  const propId = idUtil.getName(prop as idUtil.NameableProxy);
+  const propId = idUtil.getName(prop as idUtil.INameableProxy);
   const optional = !!prop.questionToken;
   const composition = getTypeCompositionFromNode(prop.type as ts.TypeReferenceNode);
 
@@ -48,7 +48,7 @@ const getPropertySignatureMetadata = (
 };
 
 const getMethodSignatureMetadata = (prop: ts.MethodSignature) => {
-  const propId = idUtil.getName(prop as idUtil.NameableProxy);
+  const propId = idUtil.getName(prop as idUtil.INameableProxy);
   const methodMetadata = getMethodMetadata(prop);
 
   return {
@@ -58,7 +58,7 @@ const getMethodSignatureMetadata = (prop: ts.MethodSignature) => {
 };
 
 const getFunctionSignatureMetadata = (prop: ts.PropertySignature) => {
-  const propId = idUtil.getName(prop as idUtil.NameableProxy);
+  const propId = idUtil.getName(prop as idUtil.INameableProxy);
   const methodMetadata = getMethodMetadata(prop.type as ts.FunctionTypeNode);
   const optional = !!prop.questionToken;
 
@@ -73,7 +73,7 @@ export const collectInterfaceMetadata = (
   node: ts.InterfaceDeclaration,
   filepath: string
 ): dmIfIf.IInterfaceMetadata => {
-  const identifier = idUtil.getName(node as idUtil.NameableProxy);
+  const identifier = idUtil.getName(node as idUtil.INameableProxy);
   const { propertyNodes, functionNodes, methodNodes } = distributeTypeElementNodes(node);
 
   const properties: dmIfIf.IInterfacePropertyMetadata[] = propertyNodes.map(

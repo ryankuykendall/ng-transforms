@@ -1,9 +1,17 @@
 import ts from 'typescript';
 
-export interface NameableProxy {
+export interface INameableProxy {
   name: ts.Identifier;
 }
 
-export const getName = (declaration: NameableProxy): string => {
+export const getName = (declaration: INameableProxy): string => {
   return declaration.name.escapedText as string;
+};
+
+export interface IExpressibleProxy {
+  expression: ts.Identifier;
+}
+
+export const getExpressionIdentifier = (node: IExpressibleProxy): string => {
+  return node.expression.getText();
 };

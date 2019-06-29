@@ -330,9 +330,15 @@ program
     console.log(chalk.yellow.bold(`Scanning ${dir}`));
 
     const tsFiles = getTypescriptFileASTsFromDirectory(dir);
-    const interfaceMatches = findFilesWithASTMatchingSelector(tsFiles, NgAstSelector.NgInterfaces);
+    let interfaceMatches = findFilesWithASTMatchingSelector(tsFiles, NgAstSelector.NgInterfaces);
+    interfaceMatches = interfaceMatches.filter((fileMatch: IFileASTQueryMatch) => {
+      // Filter out all of the test files/specs.
+      // TODO (ryan): Make this more robust. Using a regex for test
+      //   in the ModuleSpecifier may be overly broad.
+      const testResults = tsquery(fileMatch.ast, 'ImportDeclaration[moduleSpecifier.text=/test/]');
+      return testResults.length === 0;
+    });
 
-    // TODO (ryan): Filter out all of the test files/specs.
     const interfaces: dm.IRootMetadata = getRootMetadataStub();
 
     // TODO (ryan): Update this to stop using a transform to drive the visitor pattern.

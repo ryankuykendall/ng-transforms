@@ -6,6 +6,7 @@ export enum BasicType {
   Enum = 'enum',
   Function = 'function',
   Intersection = 'intersection',
+  Literal = 'literal',
   Null = 'null',
   Number = 'number',
   Parenthesized = 'parenthesized',
@@ -33,10 +34,12 @@ export enum ObservableType {
 export type DataType = BasicType | ObjectType | ObservableType | string;
 
 export const basicTypeMap: Map<ts.SyntaxKind, DataType> = new Map([
+  [ts.SyntaxKind.AnyKeyword, BasicType.Any],
   [ts.SyntaxKind.BooleanKeyword, BasicType.Boolean],
   [ts.SyntaxKind.EnumKeyword, BasicType.Enum],
   [ts.SyntaxKind.FunctionType, BasicType.Function],
   [ts.SyntaxKind.IntersectionType, BasicType.Intersection],
+  [ts.SyntaxKind.LiteralType, BasicType.Literal],
   [ts.SyntaxKind.NullKeyword, BasicType.Null],
   [ts.SyntaxKind.NumberKeyword, BasicType.Number],
   [ts.SyntaxKind.ParenthesizedType, BasicType.Parenthesized],

@@ -83,9 +83,11 @@ const getTypeArguments = (typeNode: ts.TypeReferenceNode): IType[] => {
         childTypeArg.args = getTypeArguments(childTypeNode as ts.TypeReferenceNode);
       } else if (ts.isArrayTypeNode(childTypeNode)) {
         childTypeArg.args = [getTypeArgumentsFromArrayType(childTypeNode)];
+      } else if (ts.isLiteralTypeNode(childTypeNode)) {
+        childTypeArg.literal = childTypeNode.getText();
       } else {
         console.warn(
-          'Unrecognized childNodeType in',
+          'Pass through for childNodeType in',
           ts.SyntaxKind[typeNode.kind],
           ts.SyntaxKind[childTypeNode.kind],
           chalk.bgBlueBright.black(typeNode.getFullText()),

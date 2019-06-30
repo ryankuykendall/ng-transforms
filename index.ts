@@ -33,6 +33,8 @@ const TS_NODE_BASE_ATTRS = new Set([
   'transformFlags',
 ]);
 
+const TS_FILE_EXTNAME = '.ts';
+
 const printer: ts.Printer = ts.createPrinter({
   newLine: ts.NewLineKind.LineFeed,
 });
@@ -93,13 +95,19 @@ const getTypescriptFileASTsFromDirectory = (dir: string): IFileAST[] => {
   if (!path.isAbsolute(scanDirPath)) {
     scanDirPath = path.join(process.cwd(), dir);
   }
-  console.log(chalk.yellow.bold(`Scanning files in`), scanDirPath);
 
   if (!fs.existsSync(scanDirPath)) {
-    console.log(chalk.red.bold(`Directory does not exist`), scanDirPath);
+    console.log(chalk.red.bold(`Directory or file does not exist`), scanDirPath);
   }
 
-  const tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
+  let tsFiles: string[] = [scanDirPath];
+  if (path.extname(scanDirPath) !== TS_FILE_EXTNAME) {
+    tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
+    console.log(chalk.yellow.bold(`Processing files in`), scanDirPath);
+  } else {
+    console.log(chalk.yellow.bold('Processing file'), scanDirPath);
+  }
+
   return tsFiles.map((filepath: string) => {
     const source = fs.readFileSync(filepath, fileUtil.UTF8);
     const ast = tsquery.ast(source);

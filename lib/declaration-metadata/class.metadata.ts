@@ -9,9 +9,13 @@ import {
   IPropertyMetadata,
   IConstructorMetadata,
   IHeritageMetadata,
+  IInGroup,
+  ClassMetadataGroup,
 } from './class.interface';
 import { getMethodMetadata, getMethodMetadataStub } from './method.metadata';
 import { getTypeCompositionFromNode } from './type.metadata';
+import { IHasIdentifier } from './base.interface';
+import { NodeDecoratorMap, getDecoratorMap } from '../utils/decorator.util';
 
 export const collectClassMetadata = (
   node: ts.ClassDeclaration,
@@ -196,4 +200,84 @@ const collectSetAccessorMetadata = (accessor: ts.SetAccessorDeclaration): ISetAc
     identifier,
     ...methodMetadata,
   };
+};
+
+export type ClassMemberType =
+  | ts.ConstructorDeclaration
+  | ts.PropertyDeclaration
+  | ts.MethodDeclaration
+  | ts.GetAccessorDeclaration
+  | ts.SetAccessorDeclaration;
+export interface IMember extends IHasIdentifier, IInGroup {
+  member: ClassMemberType;
+  decorators: NodeDecoratorMap;
+}
+
+export const getMemberDistributionWithIdentifiersAndGroups = (
+  node: ts.ClassDeclaration
+): IMember[] => {
+  const distribution = distributeMembers(node);
+  const members: IMember[] = [
+    // Properties
+    ...distribution.properties.map((member: ts.PropertyDeclaration) => {
+      return {
+        identifier: idUtil.getName(member as idUtil.INameableProxy),
+        in: ClassMetadataGroup.Property,
+        member,
+        decorators: getDecoratorMap(member),
+      } as IMember;
+    }),
+
+    // Methods
+    ...distribution.methods.map((member: ts.MethodDeclaration) => {
+      return {
+        identifier: idUtil.getName(member as idUtil.INameableProxy),
+        in: ClassMetadataGroup.Method,
+        member,
+        decorators: getDecoratorMap(member),
+      } as IMember;
+    }),
+
+    // Functions
+    ...distribution.functions.map((member: ts.PropertyDeclaration) => {
+      return {
+        identifier: idUtil.getName(member as idUtil.INameableProxy),
+        in: ClassMetadataGroup.Function,
+        member,
+        decorators: getDecoratorMap(member),
+      } as IMember;
+    }),
+
+    // Getters
+    ...distribution.getAccessors.map((member: ts.GetAccessorDeclaration) => {
+      return {
+        identifier: idUtil.getName(member as idUtil.INameableProxy),
+        in: ClassMetadataGroup.Getter,
+        member,
+        decorators: getDecoratorMap(member),
+      } as IMember;
+    }),
+
+    // Setters
+    ...distribution.setAccessors.map((member: ts.SetAccessorDeclaration) => {
+      return {
+        identifier: idUtil.getName(member as idUtil.INameableProxy),
+        in: ClassMetadataGroup.Setter,
+        member,
+        decorators: getDecoratorMap(member),
+      } as IMember;
+    }),
+  ];
+
+  // Add the constructor if it is defined
+  if (distribution.constructorNode) {
+    members.push({
+      identifier: 'constructor',
+      in: ClassMetadataGroup.Constructor,
+      member: distribution.constructorNode,
+      decorators: getDecoratorMap(distribution.constructorNode),
+    });
+  }
+
+  return members;
 };

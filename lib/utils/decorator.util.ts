@@ -14,7 +14,9 @@ export const getDecoratorNames = (node: ts.Node): Set<string> => {
   return new Set<string>();
 };
 
-export const getDecoratorMap = (node: ts.Node): Map<string, ts.Decorator> => {
+export type NodeDecoratorMap = Map<string, ts.Decorator>;
+
+export const getDecoratorMap = (node: ts.Node): NodeDecoratorMap => {
   if (Array.isArray(node.decorators)) {
     return node.decorators.reduce((collection, decorator) => {
       collection.set(getDecoratorName(decorator), decorator);

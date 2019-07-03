@@ -11,6 +11,7 @@ import {
   IMember,
 } from './class.metadata';
 import * as decUtil from './../utils/decorator-identifier.util';
+import { getArgumentsAsStrings } from '../utils/call-expression.util';
 
 export const collectComponentMetadata = (
   node: ts.ClassDeclaration,
@@ -20,6 +21,7 @@ export const collectComponentMetadata = (
   const distribution = getMemberDistributionWithIdentifiersAndGroups(node);
   const inputMembers = collectInputMemberMetadata(distribution);
   const hostBindingMembers = collectHostBindingMemberMetadata(distribution);
+  const hostListenerMembers: IHostBindingMemberMetadata[] = [];
   const outputMembers = collectOutputMemberMetadata(distribution);
   // Continue building out component specific metadata
 
@@ -28,6 +30,7 @@ export const collectComponentMetadata = (
     bootstrappingTemplate: '',
     inputMembers,
     hostBindingMembers,
+    hostListenerMembers,
     outputMembers,
   };
 };
@@ -38,31 +41,26 @@ const collectInputMemberMetadata = (distribution: IMember[]): IInputMemberMetada
     .map(
       (member: IMember): IInputMemberMetadata => {
         const { identifier } = member;
-        const decorator = member.decorators.get(decUtil.INPUT);
         let bindingPropertyName = undefined;
+        const decorator = member.decorators.get(decUtil.INPUT);
         if (decorator) {
-          const bindingPropertyName = getBindingPropertyName(decorator);
+          bindingPropertyName = getBindingPropertyName(decorator);
         }
         return {
           identifier,
           in: member.in,
+          bindingPropertyName,
         } as IInputMemberMetadata;
       }
     );
 };
 
 const getBindingPropertyName = (decorator: ts.Decorator): string | undefined => {
-  if (decorator.expression && (decorator.expression as ts.CallExpression).arguments) {
-    const callExpArgs = (decorator.expression as ts.CallExpression).arguments;
-    if (callExpArgs.length > 0) {
-      return (callExpArgs[0] as ts.StringLiteral).getText();
-    }
-  }
-
+  const args = getArgumentsAsStrings(decorator);
+  if (args.length > 0) return args[0];
   return;
 };
 
-// TODO (ryan): Finish this...check Angular API for CallExpression arguments
 const collectHostBindingMemberMetadata = (
   distribution: IMember[]
 ): IHostBindingMemberMetadata[] => {
@@ -70,22 +68,40 @@ const collectHostBindingMemberMetadata = (
     .filter((member: IMember) => member.decorators.has(decUtil.HOST_BINDING))
     .map((member: IMember) => {
       const { identifier } = member;
+      let hostPropertyName;
+      const decorator = member.decorators.get(decUtil.HOST_BINDING);
+      if (decorator) {
+        hostPropertyName = getHostPropertyName(decorator);
+      }
       return {
         identifier,
         in: member.in,
+        hostPropertyName,
       } as IHostBindingMemberMetadata;
     });
 };
 
-// TODO (ryan): Finish this...check Angular API for CallExpression arguments
+const getHostPropertyName = (decorator: ts.Decorator): string | undefined => {
+  const args = getArgumentsAsStrings(decorator);
+  if (args.length > 0) return args[0];
+  return;
+};
+
+// This is identical to collectInputMemberMetadata...simplify!
 const collectOutputMemberMetadata = (distribution: IMember[]): IOutputMemberMetadata[] => {
   return distribution
     .filter((member: IMember) => member.decorators.has(decUtil.OUTPUT))
     .map((member: IMember) => {
       const { identifier } = member;
+      let bindingPropertyName;
+      const decorator = member.decorators.get(decUtil.OUTPUT);
+      if (decorator) {
+        bindingPropertyName = getBindingPropertyName(decorator);
+      }
       return {
         identifier,
         in: member.in,
+        bindingPropertyName,
       } as IOutputMemberMetadata;
     });
 };

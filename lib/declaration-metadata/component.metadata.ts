@@ -4,14 +4,18 @@ import {
   IInputMemberMetadata,
   IHostBindingMemberMetadata,
   IOutputMemberMetadata,
+  IHostListenerMemberMetadata,
 } from './component.interface';
 import {
   collectClassMetadata,
   getMemberDistributionWithIdentifiersAndGroups,
   IMember,
 } from './class.metadata';
-import * as decUtil from './../utils/decorator-identifier.util';
-import { getArgumentsAsStrings } from '../utils/call-expression.util';
+import * as decIdUtil from './../utils/decorator-identifier.util';
+import {
+  getArgumentAtPositionAsString,
+  getArgumentAtPositionAsArrayOfStrings,
+} from './../utils/call-expression.util';
 
 export const collectComponentMetadata = (
   node: ts.ClassDeclaration,
@@ -21,7 +25,7 @@ export const collectComponentMetadata = (
   const distribution = getMemberDistributionWithIdentifiersAndGroups(node);
   const inputMembers = collectInputMemberMetadata(distribution);
   const hostBindingMembers = collectHostBindingMemberMetadata(distribution);
-  const hostListenerMembers: IHostBindingMemberMetadata[] = [];
+  const hostListenerMembers = collectHostListenerMemberMetadata(distribution);
   const outputMembers = collectOutputMemberMetadata(distribution);
   // Continue building out component specific metadata
 
@@ -37,12 +41,12 @@ export const collectComponentMetadata = (
 
 const collectInputMemberMetadata = (distribution: IMember[]): IInputMemberMetadata[] => {
   return distribution
-    .filter((member: IMember) => member.decorators.has(decUtil.INPUT))
+    .filter((member: IMember) => member.decorators.has(decIdUtil.INPUT))
     .map(
       (member: IMember): IInputMemberMetadata => {
         const { identifier } = member;
         let bindingPropertyName = undefined;
-        const decorator = member.decorators.get(decUtil.INPUT);
+        const decorator = member.decorators.get(decIdUtil.INPUT);
         if (decorator) {
           bindingPropertyName = getBindingPropertyName(decorator);
         }
@@ -56,20 +60,18 @@ const collectInputMemberMetadata = (distribution: IMember[]): IInputMemberMetada
 };
 
 const getBindingPropertyName = (decorator: ts.Decorator): string | undefined => {
-  const args = getArgumentsAsStrings(decorator);
-  if (args.length > 0) return args[0];
-  return;
+  return getArgumentAtPositionAsString(decorator, 1);
 };
 
 const collectHostBindingMemberMetadata = (
   distribution: IMember[]
 ): IHostBindingMemberMetadata[] => {
   return distribution
-    .filter((member: IMember) => member.decorators.has(decUtil.HOST_BINDING))
+    .filter((member: IMember) => member.decorators.has(decIdUtil.HOST_BINDING))
     .map((member: IMember) => {
       const { identifier } = member;
       let hostPropertyName;
-      const decorator = member.decorators.get(decUtil.HOST_BINDING);
+      const decorator = member.decorators.get(decIdUtil.HOST_BINDING);
       if (decorator) {
         hostPropertyName = getHostPropertyName(decorator);
       }
@@ -81,20 +83,49 @@ const collectHostBindingMemberMetadata = (
     });
 };
 
+const collectHostListenerMemberMetadata = (
+  distribution: IMember[]
+): IHostListenerMemberMetadata[] => {
+  return distribution
+    .filter((member: IMember) => member.decorators.has(decIdUtil.HOST_LISTENER))
+    .map((member: IMember) => {
+      const { identifier } = member;
+      let eventName: string | undefined = '',
+        args: string[] = [];
+      const decorator = member.decorators.get(decIdUtil.HOST_LISTENER);
+      if (decorator) {
+        eventName = getHostListenerMemberEventName(decorator);
+        args = getHostListenerMemberArgs(decorator);
+      }
+      return {
+        identifier,
+        in: member.in,
+        eventName,
+        args,
+      } as IHostListenerMemberMetadata;
+    });
+};
+
+const getHostListenerMemberEventName = (decorator: ts.Decorator): string | undefined => {
+  return getArgumentAtPositionAsString(decorator, 0);
+};
+
+const getHostListenerMemberArgs = (decorator: ts.Decorator): string[] => {
+  return getArgumentAtPositionAsArrayOfStrings(decorator, 1);
+};
+
 const getHostPropertyName = (decorator: ts.Decorator): string | undefined => {
-  const args = getArgumentsAsStrings(decorator);
-  if (args.length > 0) return args[0];
-  return;
+  return getArgumentAtPositionAsString(decorator, 0);
 };
 
 // This is identical to collectInputMemberMetadata...simplify!
 const collectOutputMemberMetadata = (distribution: IMember[]): IOutputMemberMetadata[] => {
   return distribution
-    .filter((member: IMember) => member.decorators.has(decUtil.OUTPUT))
+    .filter((member: IMember) => member.decorators.has(decIdUtil.OUTPUT))
     .map((member: IMember) => {
       const { identifier } = member;
       let bindingPropertyName;
-      const decorator = member.decorators.get(decUtil.OUTPUT);
+      const decorator = member.decorators.get(decIdUtil.OUTPUT);
       if (decorator) {
         bindingPropertyName = getBindingPropertyName(decorator);
       }

@@ -1,6 +1,19 @@
 import { IClassMetadata, IInGroup } from './class.interface';
 import { IHasIdentifier } from './base.interface';
 
+// TODO (ryan): Angular Components are a superset of Directive Behavior.
+//  Should a good deal of this be moved to the directive.interface file?
+//  Or should it be shared?
+
+//
+export interface IConstructorParameterAttribute extends IHasIdentifier {
+  attributeName: string;
+}
+
+export interface IConstructorParameterMetadata {
+  attributes: IConstructorParameterAttribute[];
+}
+
 export interface IInputMemberMetadata extends IHasIdentifier, IInGroup {
   bindingPropertyName?: string;
 }
@@ -22,6 +35,7 @@ export interface IOutputMemberMetadata extends IHasIdentifier, IInGroup {
 export interface IComponentMetadata extends IClassMetadata {
   // TODO (ryan): Flesh this out
   bootstrappingTemplate: string;
+  constructorParameterMetadata?: IConstructorParameterMetadata;
   inputMembers: IInputMemberMetadata[];
   hostBindingMembers: IHostBindingMemberMetadata[];
   hostListenerMembers: IHostListenerMemberMetadata[];

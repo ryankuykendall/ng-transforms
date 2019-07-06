@@ -5,6 +5,8 @@ import {
   IHostBindingMemberMetadata,
   IOutputMemberMetadata,
   IHostListenerMemberMetadata,
+  IConstructorParameterMetadata,
+  IConstructorParameterAttribute,
 } from './component.interface';
 import {
   collectClassMetadata,
@@ -12,10 +14,17 @@ import {
   IMember,
 } from './class.metadata';
 import * as decIdUtil from './../utils/decorator-identifier.util';
+import * as idUtil from './../utils/identifier.util';
 import {
   getArgumentAtPositionAsString,
   getArgumentAtPositionAsArrayOfStrings,
 } from './../utils/call-expression.util';
+import { ClassMetadataGroup } from './class.interface';
+import { getDecoratorMap } from '../utils/decorator.util';
+
+// TODO (ryan): Angular Components are a superset of Directive Behavior.
+//  Should a good deal of this be moved to the directive.metadata file?
+//  Or should it be shared?
 
 export const collectComponentMetadata = (
   node: ts.ClassDeclaration,
@@ -23,6 +32,7 @@ export const collectComponentMetadata = (
 ): IComponentMetadata => {
   const metadata = collectClassMetadata(node, filepath);
   const distribution = getMemberDistributionWithIdentifiersAndGroups(node);
+  const constructorParameterMetadata = collectConstructorParameterMetadata(distribution);
   const inputMembers = collectInputMemberMetadata(distribution);
   const hostBindingMembers = collectHostBindingMemberMetadata(distribution);
   const hostListenerMembers = collectHostListenerMemberMetadata(distribution);
@@ -32,11 +42,48 @@ export const collectComponentMetadata = (
   return {
     ...metadata,
     bootstrappingTemplate: '',
+    constructorParameterMetadata,
     inputMembers,
     hostBindingMembers,
     hostListenerMembers,
     outputMembers,
   };
+};
+
+const collectConstructorParameterMetadata = (
+  distribution: IMember[]
+): IConstructorParameterMetadata | undefined => {
+  const constructorMember: IMember | undefined = distribution.filter(
+    (member: IMember) => member.in === ClassMetadataGroup.Constructor
+  )[0];
+
+  if (constructorMember) {
+    const constructorDec = constructorMember.member as ts.ConstructorDeclaration;
+    const metadata: IConstructorParameterMetadata = {
+      attributes: [],
+    };
+
+    // Extract metadata from parameter decorators.
+    constructorDec.parameters.forEach((param: ts.ParameterDeclaration) => {
+      const identifier = idUtil.getName(param as idUtil.INameableProxy);
+      const paramDecoratorMap = getDecoratorMap(param);
+
+      // Handle attributes
+      const attributeDecorator = paramDecoratorMap.get(decIdUtil.ATTRIBUTE);
+      if (attributeDecorator && ts.isDecorator(attributeDecorator)) {
+        const attributeName = getArgumentAtPositionAsString(attributeDecorator, 0);
+        metadata.attributes.push({
+          identifier,
+          attributeName,
+        } as IConstructorParameterAttribute);
+      }
+      // Handle remaining decorators/properties.
+    });
+
+    return metadata;
+  }
+
+  return;
 };
 
 const collectInputMemberMetadata = (distribution: IMember[]): IInputMemberMetadata[] => {

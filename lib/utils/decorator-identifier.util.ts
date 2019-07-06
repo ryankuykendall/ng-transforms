@@ -1,3 +1,4 @@
+export const ATTRIBUTE = 'Attribute';
 export const COMPONENT = 'Component';
 export const DIRECTIVE = 'Directive';
 export const HOST_BINDING = 'HostBinding';

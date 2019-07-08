@@ -10,8 +10,23 @@ export interface IConstructorParameterAttribute extends IHasIdentifier {
   attributeName: string;
 }
 
+export enum ConstructorParameterRefType {
+  ChangeDetectorRef = 'ChangeDetectorRef',
+  ComponentRef = 'ComponentRef',
+  EmbeddedViewRef = 'EmbeddedViewRef',
+  ElementRef = 'ElementRef',
+  TemplateRef = 'TemplateRef',
+  ViewRef = 'ViewRef',
+  ViewContainerRef = 'ViewContainerRef',
+}
+
+export interface IConstructorParameterRefMetadata extends IHasIdentifier {
+  type: ConstructorParameterRefType;
+}
+
 export interface IConstructorParameterMetadata {
   attributes: IConstructorParameterAttribute[];
+  refs: IConstructorParameterRefMetadata[];
 }
 
 export interface IInputMemberMetadata extends IHasIdentifier, IInGroup {

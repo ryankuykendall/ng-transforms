@@ -7,6 +7,8 @@ import {
   IHostListenerMemberMetadata,
   IConstructorParameterMetadata,
   IConstructorParameterAttribute,
+  ConstructorParameterRefType,
+  IConstructorParameterRefMetadata,
 } from './component.interface';
 import {
   collectClassMetadata,
@@ -19,10 +21,11 @@ import {
   getArgumentAtPositionAsString,
   getArgumentAtPositionAsArrayOfStrings,
 } from './../utils/call-expression.util';
-import { ClassMetadataGroup } from './class.interface';
+import { ClassMetadataGroup, IClassMetadata } from './class.interface';
 import { getDecoratorMap } from '../utils/decorator.util';
+import { IMethodParameter } from './method.interface';
 
-// TODO (ryan): Angular Components are a superset of Directive Behavior.
+// TODO (ryan): Angular Components are a subclass of Directive Behavior.
 //  Should a good deal of this be moved to the directive.metadata file?
 //  Or should it be shared?
 
@@ -32,7 +35,7 @@ export const collectComponentMetadata = (
 ): IComponentMetadata => {
   const metadata = collectClassMetadata(node, filepath);
   const distribution = getMemberDistributionWithIdentifiersAndGroups(node);
-  const constructorParameterMetadata = collectConstructorParameterMetadata(distribution);
+  const constructorParameterMetadata = collectConstructorParameterMetadata(distribution, metadata);
   const inputMembers = collectInputMemberMetadata(distribution);
   const hostBindingMembers = collectHostBindingMemberMetadata(distribution);
   const hostListenerMembers = collectHostListenerMemberMetadata(distribution);
@@ -51,7 +54,8 @@ export const collectComponentMetadata = (
 };
 
 const collectConstructorParameterMetadata = (
-  distribution: IMember[]
+  distribution: IMember[],
+  classMetadata: IClassMetadata
 ): IConstructorParameterMetadata | undefined => {
   const constructorMember: IMember | undefined = distribution.filter(
     (member: IMember) => member.in === ClassMetadataGroup.Constructor
@@ -61,7 +65,16 @@ const collectConstructorParameterMetadata = (
     const constructorDec = constructorMember.member as ts.ConstructorDeclaration;
     const metadata: IConstructorParameterMetadata = {
       attributes: [],
+      refs: [],
     };
+
+    // Build-up map of constructor parameter types:
+    const parameterTypeMap = new Map<string, string>();
+    if (classMetadata.constructorDef) {
+      classMetadata.constructorDef.parameters.forEach((param: IMethodParameter) => {
+        parameterTypeMap.set(param.identifier, param.type);
+      });
+    }
 
     // Extract metadata from parameter decorators.
     constructorDec.parameters.forEach((param: ts.ParameterDeclaration) => {
@@ -77,7 +90,15 @@ const collectConstructorParameterMetadata = (
           attributeName,
         } as IConstructorParameterAttribute);
       }
-      // Handle remaining decorators/properties.
+
+      // Handle Refs
+      const parameterType = parameterTypeMap.get(identifier);
+      if (Object.values(ConstructorParameterRefType).includes(parameterType)) {
+        metadata.refs.push({
+          identifier,
+          type: parameterType as ConstructorParameterRefType,
+        } as IConstructorParameterRefMetadata);
+      }
     });
 
     return metadata;

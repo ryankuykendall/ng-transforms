@@ -1,6 +1,7 @@
 import { IHasFilepath, IHasIdentifier } from './base.interface';
 import { IMethodBase } from './method.interface';
 import { IType } from './type.interface';
+import { MemberModifier } from './base.metadata';
 
 export interface IHeritageMetadata {
   extendsDef?: IType;
@@ -9,7 +10,11 @@ export interface IHeritageMetadata {
 export interface IConstructorMetadata extends IMethodBase {
   injectedProperties: IPropertyMetadata[];
 }
-export interface IPropertyMetadata extends IHasIdentifier {}
+
+export interface IPropertyMetadata extends IHasIdentifier, IType {
+  initializer?: IType;
+  modifiers?: MemberModifier[];
+}
 export interface IFunctionMetadata extends IHasIdentifier, IMethodBase {}
 export interface IMethodMetadata extends IHasIdentifier, IMethodBase {}
 export interface IGetAccessorMetadata extends IHasIdentifier, IMethodBase {}

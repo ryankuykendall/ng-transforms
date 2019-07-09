@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import chalk from 'chalk';
 
 export enum BasicType {
   Any = 'any',
@@ -79,3 +80,45 @@ export const kindTypeReferenceNodeHandler = (typeNode: ts.TypeNode): DataType | 
 export const complexTypeMap: Map<ts.SyntaxKind, typeNodeHandlerFunc> = new Map([
   [ts.SyntaxKind.TypeReference, kindTypeReferenceNodeHandler],
 ]);
+
+export enum MemberModifier {
+  Export = 'export',
+  Public = 'public',
+  Protected = 'protected',
+  Private = 'private',
+  Readonly = 'readonly',
+}
+
+export const collectMemberModifiers = (node: ts.Node): MemberModifier[] | undefined => {
+  if (node.modifiers) {
+    const modifiers: MemberModifier[] = [];
+    node.modifiers.forEach((mod: ts.Modifier) => {
+      switch (mod.kind) {
+        case ts.SyntaxKind.ExportKeyword:
+          modifiers.push(MemberModifier.Export);
+          break;
+        case ts.SyntaxKind.PublicKeyword:
+          modifiers.push(MemberModifier.Public);
+          break;
+        case ts.SyntaxKind.ProtectedKeyword:
+          modifiers.push(MemberModifier.Protected);
+          break;
+        case ts.SyntaxKind.PrivateKeyword:
+          modifiers.push(MemberModifier.Private);
+          break;
+        case ts.SyntaxKind.ReadonlyKeyword:
+          modifiers.push(MemberModifier.Readonly);
+          break;
+        default:
+          console.error(
+            chalk.yellowBright('Unrecognized member modifier'),
+            chalk.bgRed.white(ts.SyntaxKind[mod.kind])
+          );
+          break;
+      }
+    });
+    return modifiers;
+  }
+
+  return;
+};

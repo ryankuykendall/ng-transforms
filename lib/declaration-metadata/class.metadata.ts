@@ -16,6 +16,8 @@ import { getMethodMetadata, getMethodMetadataStub } from './method.metadata';
 import { getTypeCompositionFromNode } from './type.metadata';
 import { IHasIdentifier } from './base.interface';
 import { NodeDecoratorMap, getDecoratorMap } from '../utils/decorator.util';
+import { collectMemberModifiers } from './base.metadata';
+import { collectExpressionMetadata } from './expression.metadata';
 
 export const collectClassMetadata = (
   node: ts.ClassDeclaration,
@@ -153,9 +155,23 @@ const getConstructorInjectedProperties = (node: ts.ConstructorDeclaration): IPro
 
 const collectPropertyMetadata = (property: ts.PropertyDeclaration): IPropertyMetadata => {
   const identifier = idUtil.getName(property as idUtil.INameableProxy);
-  return {
+  const modifiers = collectMemberModifiers(property);
+  let metadata = {
     identifier,
+    modifiers,
   };
+
+  if (property.type) {
+    metadata = Object.assign({}, metadata, getTypeCompositionFromNode(property.type));
+  }
+  // TODO (ryan): Finish the initializer!
+  if (property.initializer) {
+    metadata = Object.assign({}, metadata, {
+      initializer: collectExpressionMetadata(property.initializer),
+    });
+  }
+
+  return metadata as IPropertyMetadata;
 };
 
 const collectFunctionMetadata = (func: ts.PropertyDeclaration): IFunctionMetadata => {

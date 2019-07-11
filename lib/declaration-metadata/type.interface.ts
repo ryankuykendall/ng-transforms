@@ -3,5 +3,5 @@ import { DataType } from './base.metadata';
 export interface IType {
   type: DataType;
   args?: IType[];
-  literal?: string;
+  literal?: number | boolean | string;
 }

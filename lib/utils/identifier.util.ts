@@ -8,10 +8,11 @@ export const getName = (declaration: INameableProxy): string => {
   return declaration.name.escapedText as string;
 };
 
-export interface IExpressibleProxy {
-  expression: ts.Identifier;
-}
+type ExpressionProxy =
+  | ts.ExpressionWithTypeArguments
+  | ts.NewExpression
+  | ts.PropertyAccessExpression;
 
-export const getExpressionIdentifier = (node: IExpressibleProxy): string => {
+export const getExpressionIdentifier = (node: ExpressionProxy): string => {
   return node.expression.getText();
 };

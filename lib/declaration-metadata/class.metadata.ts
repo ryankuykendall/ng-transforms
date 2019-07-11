@@ -67,20 +67,14 @@ const collectHeritageMetadata = (node: ts.ClassDeclaration): IHeritageMetadata |
       const clauseText = clause.getText();
       if (clauseText.match(/^extends/)) {
         const extendsType = clause.types[0];
-        const identifier = idUtil.getExpressionIdentifier(
-          // QUESTION (ryan): Why is this necessary here but not
-          //   with INameableProxy?
-          (extendsType as unknown) as idUtil.IExpressibleProxy
-        );
+        const identifier = idUtil.getExpressionIdentifier(extendsType);
         const composition = getTypeCompositionFromNode(clause.types[0]);
         composition.type = identifier;
         heritage.extendsDef = composition;
       } else {
         heritage.implementsDef = clause.types.map(
           (implementsType: ts.ExpressionWithTypeArguments) => {
-            const identifier = idUtil.getExpressionIdentifier(
-              (implementsType as unknown) as idUtil.IExpressibleProxy
-            );
+            const identifier = idUtil.getExpressionIdentifier(implementsType);
             const compositon = getTypeCompositionFromNode(implementsType);
             compositon.type = identifier;
             return compositon;

@@ -64,26 +64,6 @@ const getFalseKeywordMetadata = (): IType => {
   };
 };
 
-/**
- * TODO (ryan): Drop identifier in CallExpression so that ClassName
- *   is the identifier of the type!
-  
-  "initializer": {
-    "expressionType": "new",
-    "identifier": "EventEmitter",
-    "type": {
-      "type": "[unknown]",
-      "args": [
-        {
-          "type": "MatSelectionListChange",
-          "args": []
-        }
-      ]
-    },
-    "args": []
-  }
- */
-
 const getNewExpressionMetadata = (expression: ts.NewExpression): INewExpression => {
   let args: ExpressionMetadata[] = [];
   // TODO (ryan): Generalize this for CallExpression!

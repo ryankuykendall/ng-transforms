@@ -11,7 +11,7 @@ export interface IHasExpressionMetadataType {
   expressionType: ExpressionMetadataType;
 }
 
-export interface INewExpression extends IHasIdentifier, IHasExpressionMetadataType {
+export interface INewExpression extends IHasExpressionMetadataType {
   type: IType;
   args: ExpressionMetadata[];
 }

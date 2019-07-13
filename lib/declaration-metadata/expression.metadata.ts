@@ -1,6 +1,6 @@
 import ts, { TsConfigSourceFile } from 'typescript';
 import { IType } from './type.interface';
-import { BasicType } from './base.metadata';
+import { BasicType, DataType } from './base.metadata';
 import chalk from 'chalk';
 import {
   INewExpression,
@@ -10,7 +10,7 @@ import {
   ICallExpression,
 } from './expression.interface';
 import { getExpressionIdentifier, getName, INameableProxy } from '../utils/identifier.util';
-import { getTypeCompositionFromNode } from './type.metadata';
+import { collectTypeArgumentMetadata } from './type.metadata';
 
 // TODO (ryan): Break each case into a separate method.
 export const collectExpressionMetadata = (
@@ -85,17 +85,30 @@ const getFalseKeywordMetadata = (): IType => {
  */
 
 const getNewExpressionMetadata = (expression: ts.NewExpression): INewExpression => {
-  const newExp = expression;
-  const identifier = getExpressionIdentifier(newExp);
   let args: ExpressionMetadata[] = [];
   // TODO (ryan): Generalize this for CallExpression!
-  if (newExp.arguments) {
-    args = newExp.arguments.map((node: ts.Expression) => collectExpressionMetadata(node));
+  if (expression.arguments) {
+    args = expression.arguments.map((node: ts.Expression) => collectExpressionMetadata(node));
   }
+
+  let dataType: DataType = BasicType.Unknown;
+  switch (expression.expression.kind) {
+    case ts.SyntaxKind.Identifier:
+      dataType = (expression.expression as ts.Identifier).getText();
+      break;
+  }
+  let typeArgs: ts.TypeNode[] = [];
+  if (expression.typeArguments) {
+    typeArgs = expression.typeArguments.map(arg => arg);
+  }
+  const type: IType = {
+    type: dataType,
+    args: collectTypeArgumentMetadata(expression, typeArgs),
+  };
+
   return {
     expressionType: ExpressionMetadataType.New,
-    identifier,
-    type: getTypeCompositionFromNode((expression as unknown) as ts.TypeNode),
+    type,
     args,
   };
 };

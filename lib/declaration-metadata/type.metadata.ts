@@ -41,13 +41,12 @@ export const getTypeCompositionFromNode = (typeNode: ts.TypeNode): IType => {
 };
 
 const getTypeArguments = (typeNode: ts.TypeReferenceNode): IType[] => {
-  let args: IType[] = [];
   // TODO (ryan): Investigate! Somehow in the compiled TS typeNode can be undefined!
   //   Perhaps when we hit a LiteralKeyword?
   // To repro run query:
   //   ./dist/index.js collect-interface-declarations ~/ng-components/components/src/material/tabs/.
   // Also make sure to address any of the Unrecognized childNodeTypes.
-  if (!typeNode) return args;
+  if (!typeNode) return [];
 
   const argumentNodes: ts.TypeNode[] = [];
   if (typeNode.typeArguments) {
@@ -66,6 +65,14 @@ const getTypeArguments = (typeNode: ts.TypeReferenceNode): IType[] => {
     argumentNodes.push(typeNode.type);
   }
 
+  return collectTypeArgumentMetadata(typeNode, argumentNodes);
+};
+
+export const collectTypeArgumentMetadata = (
+  parent: ts.Node,
+  argumentNodes: ts.TypeNode[]
+): IType[] => {
+  const args: IType[] = [];
   if (argumentNodes.length > 0) {
     argumentNodes.forEach(childTypeNode => {
       const childType = getTypeFromNode(childTypeNode);
@@ -88,17 +95,17 @@ const getTypeArguments = (typeNode: ts.TypeReferenceNode): IType[] => {
       } else {
         console.warn(
           'Pass through for childNodeType in',
-          ts.SyntaxKind[typeNode.kind],
+          ts.SyntaxKind[parent.kind],
           ts.SyntaxKind[childTypeNode.kind],
-          chalk.bgBlueBright.black(typeNode.getFullText()),
+          chalk.bgBlueBright.black(parent.getFullText()),
           chalk.bgYellow.black(childTypeNode.getFullText())
         );
       }
 
       args.push(childTypeArg);
     });
-  } else if (ts.isArrayTypeNode(typeNode)) {
-    args.push(getTypeArgumentsFromArrayType(typeNode));
+  } else if (ts.isArrayTypeNode(parent)) {
+    args.push(getTypeArgumentsFromArrayType(parent));
   }
 
   return args;

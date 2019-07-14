@@ -3,7 +3,7 @@ import ts from 'typescript';
 const getDecoratorName = (decorator: ts.Decorator): string => {
   const expression = decorator.expression as ts.CallExpression;
   const identifier = expression.expression as ts.Identifier;
-  return identifier.escapedText as string;
+  return identifier.getText();
 };
 
 export const getDecoratorNames = (node: ts.Node): Set<string> => {

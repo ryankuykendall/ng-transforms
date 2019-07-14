@@ -70,18 +70,23 @@ export const collectDirectiveDecoratorMetadata = (
 
       // hostElementBindings
       const hostElementBindingsProp = decoratorProperties.get(DirectiveDecoratorPropertyName.Host);
-      console.log('Host', hostElementBindingsProp && hostElementBindingsProp.getText());
       hostElementBindings = collectHostElementBindingMetadata(hostElementBindingsProp);
 
       // inputs
       const inputsProp = decoratorProperties.get(DirectiveDecoratorPropertyName.Inputs);
-      console.log('Inputs', inputsProp && inputsProp.getText());
       inputs = collectInputsMetadata(inputsProp);
 
       // outputs
       const outputsProp = decoratorProperties.get(DirectiveDecoratorPropertyName.Outputs);
-      console.log('Outputs', outputsProp && outputsProp.getText());
       outputs = collectOutputsMetadata(outputsProp);
+
+      // providers
+      const providersProp = decoratorProperties.get(DirectiveDecoratorPropertyName.Providers);
+      providers = collectProvidersMetadata(providersProp);
+
+      // queries
+      const queriesProp = decoratorProperties.get(DirectiveDecoratorPropertyName.Queries);
+      queries = collectQueriesMetadata(queriesProp);
 
       // exportAs
       const exportAsProp = decoratorProperties.get(DirectiveDecoratorPropertyName.ExportAs);
@@ -139,15 +144,12 @@ export const collectSelectorMetadata = (expression: ts.Expression | undefined): 
 export const collectHostElementBindingMetadata = (
   expression: ts.Expression | undefined
 ): string[] => {
-  console.log('collectHost SyntaxKind', expression && ts.SyntaxKind[expression.kind]);
-
   if (expression && ts.isObjectLiteralExpression(expression)) {
     return (expression as ts.ObjectLiteralExpression).properties.map(
       (prop: ts.ObjectLiteralElementLike) => {
         // TODO (ryan): Run the Typescript compiler on the property initializer so that we can
         //   further classify whether the initializer is just an ExpressionStatement > StringLiteral
         //   or a more complex ExpressionStatement like ExpressionStatement > ConditionalExpression.
-        console.log(' - Host property', prop.getText());
         return prop.getText();
       }
     );
@@ -157,8 +159,6 @@ export const collectHostElementBindingMetadata = (
 };
 
 export const collectInputsMetadata = (expression: ts.Expression | undefined): string[] => {
-  console.log('collectInputs SyntaxKind', expression && ts.SyntaxKind[expression.kind]);
-
   if (expression && ts.isArrayLiteralExpression(expression)) {
     return (expression as ts.ArrayLiteralExpression).elements.map((element: ts.Expression) => {
       console.log(' - Input element', element.getText());
@@ -172,11 +172,31 @@ export const collectInputsMetadata = (expression: ts.Expression | undefined): st
 };
 
 export const collectOutputsMetadata = (expression: ts.Expression | undefined): string[] => {
-  console.log('collectOutputs SyntaxKind', expression && ts.SyntaxKind[expression.kind]);
-
   if (expression && ts.isArrayLiteralExpression(expression)) {
     return (expression as ts.ArrayLiteralExpression).elements.map((element: ts.Expression) => {
-      console.log(' - Input element', element.getText());
+      // TODO (ryan): This need to be further refined for sub properties.
+      return element.getText();
+    });
+  }
+
+  return [];
+};
+
+export const collectProvidersMetadata = (expression: ts.Expression | undefined): string[] => {
+  if (expression && ts.isArrayLiteralExpression(expression)) {
+    return (expression as ts.ArrayLiteralExpression).elements.map((element: ts.Expression) => {
+      // TODO (ryan): This need to be further refined for sub types & properties.
+      return element.getText();
+    });
+  }
+
+  return [];
+};
+
+export const collectQueriesMetadata = (expression: ts.Expression | undefined): string[] => {
+  if (expression && ts.isArrayLiteralExpression(expression)) {
+    return (expression as ts.ArrayLiteralExpression).elements.map((element: ts.Expression) => {
+      // TODO (ryan): This need to be further refined for sub properties.
       return element.getText();
     });
   }

@@ -3,6 +3,7 @@
 import program from 'commander';
 import ts from 'typescript';
 import { tsquery } from '@phenomnomnominal/tsquery';
+import JsonQuery from 'json-query';
 
 import * as ct from './lib/component.transform';
 import * as cdt from './lib/transforms/components/component-decorator.transform';
@@ -333,9 +334,25 @@ program
 
 program
   .command('collect-interface-declarations <dir>')
+  .option(
+    /**
+     * Why not just use JSONQuery here or a single flag?
+     * https://github.com/mmckegg/json-query
+     *
+     * Would we also want to generate a JSON Schema for Typescript?
+     * https://github.com/vega/ts-json-schema-generator
+     *
+     * And maybe an option for KeyTree (returns simplified tree schema structure to assist)
+     *   with writing json-queries?
+     * */
+    '-q --query <query>',
+    'Query the metadata using JSONQuery'
+  )
   .description('Scans typescript files in a directory to pull out classes, interfaces, and enums')
   .action((dir: string, cmd: program.Command) => {
     console.log(chalk.yellow.bold(`Scanning ${dir}`));
+
+    const query = cmd.opts()['query'] || null;
 
     const tsFiles = getTypescriptFileASTsFromDirectory(dir);
     let interfaceMatches = findFilesWithASTMatchingSelector(tsFiles, NgAstSelector.NgInterfaces);
@@ -354,8 +371,19 @@ program
       ts.transform(ast, [dm.collectMetadata(interfaces, filepath, dm.rootCollectorCallback)]);
     });
 
-    console.log(chalk.green.bold('Found interfaces'));
-    console.log(JSON.stringify(interfaces, null, 2));
+    let metadata: Object | undefined = interfaces as Object;
+    console.log(
+      chalk.green.bold('Metadata'),
+      (query && chalk.bold.yellow(`with query of ${query}`)) || ''
+    );
+
+    if (query) {
+      metadata = JsonQuery(query, {
+        data: metadata,
+      }).value;
+    }
+
+    console.log(JSON.stringify(metadata, null, 2));
   });
 
 program.parse(process.argv);

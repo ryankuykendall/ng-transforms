@@ -87,6 +87,7 @@ export enum MemberModifier {
   Protected = 'protected',
   Private = 'private',
   Readonly = 'readonly',
+  Static = 'static',
 }
 
 export const collectMemberModifiers = (node: ts.Node): MemberModifier[] | undefined => {
@@ -108,6 +109,9 @@ export const collectMemberModifiers = (node: ts.Node): MemberModifier[] | undefi
           break;
         case ts.SyntaxKind.ReadonlyKeyword:
           modifiers.push(MemberModifier.Readonly);
+          break;
+        case ts.SyntaxKind.StaticKeyword:
+          modifiers.push(MemberModifier.Static);
           break;
         default:
           console.error(

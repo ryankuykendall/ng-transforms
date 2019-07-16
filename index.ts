@@ -163,6 +163,103 @@ const generateTypescriptFromTransformationResult = (results: IFileTransformation
   });
 };
 
+interface OutputNode {
+  label?: string;
+  collection: boolean;
+  children: OutputNode[];
+  depth: number;
+}
+
+const generateOutputNodeStub = (): OutputNode => {
+  return {
+    collection: false,
+    children: [],
+    depth: 0,
+  };
+};
+
+type TrieNode = Map<string, Map<string, any>>;
+
+const generateTrieFromKeyData = (key: OutputNode): TrieNode => {
+  const trie: TrieNode = new Map<string, TrieNode>();
+
+  const generateNodeName = (node: OutputNode): string =>
+    `${node.label}${node.collection ? '[]' : ''}`;
+
+  const visitNode = (node: OutputNode, parent: TrieNode) => {
+    const name = generateNodeName(node);
+    if (!parent.has(name)) {
+      parent.set(name, new Map<string, TrieNode>());
+    }
+    const newSharedParent = parent.get(name);
+    if (newSharedParent) {
+      node.children.forEach((child: OutputNode) => {
+        visitNode(child, newSharedParent);
+      });
+    }
+  };
+
+  visitNode(key, trie);
+
+  return trie;
+};
+
+const generateKeyFromTrie = (trie: TrieNode): string => {
+  const lines: string[] = [];
+  const visit = (node: TrieNode, depth = 0) => {
+    Array.from(node.entries())
+      .sort(([x], [y]) => {
+        return x < y ? -1 : 1;
+      })
+      .forEach(([label, childTrie]) => {
+        lines.push(`${''.padStart(2 * depth, ' ')}${label || '$root'}`);
+        visit(childTrie, depth + 1);
+      });
+  };
+
+  visit(trie);
+  return lines.join('\n');
+};
+
+const generateKeyFromData = (data: Object | Array<any>): OutputNode => {
+  const key = generateOutputNodeStub();
+  const visit = (node: Object | Array<any>, keyRef: OutputNode) => {
+    if (Array.isArray(node)) {
+      keyRef.collection = true;
+      node.forEach((child: Object | Array<any>) => {
+        visit(child, keyRef);
+      });
+    } else if (typeof node === 'object') {
+      [...Object.entries(node)].forEach(([label, child]) => {
+        const childKeyRef = generateOutputNodeStub();
+        childKeyRef.label = label;
+        childKeyRef.depth = keyRef.depth + 1;
+        visit(child, childKeyRef);
+        keyRef.children.push(childKeyRef);
+      });
+    }
+  };
+
+  visit(data, key);
+
+  return key;
+};
+
+const generateKeyPresentationFromOutputNode = (key: OutputNode): string => {
+  const keyPresentation: string[] = [];
+  const keyVisit = (node: OutputNode) => {
+    keyPresentation.push(
+      `${''.padStart(2 * node.depth, ' ')}${node.label}${node.collection ? '[]' : ''}`
+    );
+    node.children.forEach((child: OutputNode) => {
+      keyVisit(child);
+    });
+  };
+  keyVisit(key);
+
+  return keyPresentation.join('\n');
+};
+
 program.version(packageJSON.version);
 
 program.command('dump <dir>').action((dir: string, cmd: program.Command) => {
@@ -332,6 +429,36 @@ program
     generateTypescriptFromTransformationResult(transformationResults);
   });
 
+interface IObject {
+  [key: string]: any;
+}
+
+const jsonQueryLocals = {
+  // Usage:
+  //   directives:select(filepath,identifier,selector)
+  //   components:select(filepath,identifier,selector,bootstrappingTemplate)
+
+  select: function(input: Array<any> | undefined) {
+    if (Array.isArray(input)) {
+      var keys: string[] = [].slice.call(arguments, 1);
+      return input.map((item: IObject) => {
+        return Object.keys(item).reduce((result: IObject, key: string) => {
+          if (keys.includes(key)) {
+            result[key] = item[key];
+          }
+          return result;
+        }, {});
+      });
+    }
+  },
+};
+
+// TODOs (ryan):
+//   1. Add an option to save output to file
+//   2. Move querying and key generation to a separate command that can be done
+//        against the output file
+//   3. Move the key and query functions out into ./lib/
+//   4. Clean-up JSON Query Select Function into ./lib/
 program
   .command('collect-interface-declarations <dir>')
   .option(
@@ -348,11 +475,13 @@ program
     '-q --query <query>',
     'Query the metadata using JSONQuery'
   )
+  .option('-k --key', 'Outputs the summary key for the data')
   .description('Scans typescript files in a directory to pull out classes, interfaces, and enums')
   .action((dir: string, cmd: program.Command) => {
     console.log(chalk.yellow.bold(`Scanning ${dir}`));
 
     const query = cmd.opts()['query'] || null;
+    const outputKey = cmd.opts()['key'] || false;
 
     const tsFiles = getTypescriptFileASTsFromDirectory(dir);
     let interfaceMatches = findFilesWithASTMatchingSelector(tsFiles, NgAstSelector.NgInterfaces);
@@ -380,10 +509,25 @@ program
     if (query) {
       metadata = JsonQuery(query, {
         data: metadata,
+        locals: jsonQueryLocals,
       }).value;
     }
 
     console.log(JSON.stringify(metadata, null, 2));
+
+    if (outputKey && metadata) {
+      console.log(chalk.bgGreen.black('Output key'));
+      const key = generateKeyFromData(metadata);
+      // console.log(JSON.stringify(key, null, 2));
+
+      // const keyPresentation = generateKeyPresentationFromOutputNode(key);
+      // console.log(chalk.bgGreen.black('Output key presentation'));
+      // console.log(keyPresentation);
+
+      const trie = generateTrieFromKeyData(key);
+      const triePresentation = generateKeyFromTrie(trie);
+      console.log(triePresentation);
+    }
   });
 
 program.parse(process.argv);

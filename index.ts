@@ -14,6 +14,9 @@ import * as prettierUtil from './lib/utils/prettier.util';
 import * as dm from './lib/declaration-metadata/index.metadata';
 import * as dmIfIf from './lib/declaration-metadata/interface.interface';
 
+// TODO (ryan): Wrap-up chalk with console.log && console.error into a separate module
+//   (and likely a singleton) to control output velocity levels across command runs.
+//   Add verbosity level as an option to general command flags.
 import chalk from 'chalk';
 import * as glob from 'glob';
 import * as fs from 'fs';
@@ -163,14 +166,14 @@ const generateTypescriptFromTransformationResult = (results: IFileTransformation
   });
 };
 
-interface OutputNode {
+interface IOutputNode {
   label?: string;
   collection: boolean;
-  children: OutputNode[];
+  children: IOutputNode[];
   depth: number;
 }
 
-const generateOutputNodeStub = (): OutputNode => {
+const generateOutputNodeStub = (): IOutputNode => {
   return {
     collection: false,
     children: [],
@@ -180,20 +183,20 @@ const generateOutputNodeStub = (): OutputNode => {
 
 type TrieNode = Map<string, Map<string, any>>;
 
-const generateTrieFromKeyData = (key: OutputNode): TrieNode => {
+const generateTrieFromKeyData = (key: IOutputNode): TrieNode => {
   const trie: TrieNode = new Map<string, TrieNode>();
 
-  const generateNodeName = (node: OutputNode): string =>
+  const generateNodeName = (node: IOutputNode): string =>
     `${node.label}${node.collection ? '[]' : ''}`;
 
-  const visitNode = (node: OutputNode, parent: TrieNode) => {
+  const visitNode = (node: IOutputNode, parent: TrieNode) => {
     const name = generateNodeName(node);
     if (!parent.has(name)) {
       parent.set(name, new Map<string, TrieNode>());
     }
     const newSharedParent = parent.get(name);
     if (newSharedParent) {
-      node.children.forEach((child: OutputNode) => {
+      node.children.forEach((child: IOutputNode) => {
         visitNode(child, newSharedParent);
       });
     }
@@ -221,9 +224,9 @@ const generateKeyFromTrie = (trie: TrieNode): string => {
   return lines.join('\n');
 };
 
-const generateKeyFromData = (data: Object | Array<any>): OutputNode => {
+const generateKeyFromData = (data: Object | Array<any>): IOutputNode => {
   const key = generateOutputNodeStub();
-  const visit = (node: Object | Array<any>, keyRef: OutputNode) => {
+  const visit = (node: Object | Array<any>, keyRef: IOutputNode) => {
     if (Array.isArray(node)) {
       keyRef.collection = true;
       node.forEach((child: Object | Array<any>) => {
@@ -245,13 +248,13 @@ const generateKeyFromData = (data: Object | Array<any>): OutputNode => {
   return key;
 };
 
-const generateKeyPresentationFromOutputNode = (key: OutputNode): string => {
+const generateKeyPresentationFromOutputNode = (key: IOutputNode): string => {
   const keyPresentation: string[] = [];
-  const keyVisit = (node: OutputNode) => {
+  const keyVisit = (node: IOutputNode) => {
     keyPresentation.push(
       `${''.padStart(2 * node.depth, ' ')}${node.label}${node.collection ? '[]' : ''}`
     );
-    node.children.forEach((child: OutputNode) => {
+    node.children.forEach((child: IOutputNode) => {
       keyVisit(child);
     });
   };
@@ -262,6 +265,8 @@ const generateKeyPresentationFromOutputNode = (key: OutputNode): string => {
 
 program.version(packageJSON.version);
 
+// TODO (ryan): Clean this file up by moving each of the command functions into their
+//   own files in lib/cli/command.
 program.command('dump <dir>').action((dir: string, cmd: program.Command) => {
   const tsFiles = getTypescriptFileASTsFromDirectory(dir);
   tsFiles.forEach(({ filepath, ast }: IFileAST, index: number) => {
@@ -429,6 +434,7 @@ program
     generateTypescriptFromTransformationResult(transformationResults);
   });
 
+// TODO (ryan): Move these to lib.
 interface IObject {
   [key: string]: any;
 }
@@ -454,34 +460,19 @@ const jsonQueryLocals = {
 };
 
 // TODOs (ryan):
-//   1. Add an option to save output to file
-//   2. Move querying and key generation to a separate command that can be done
-//        against the output file
-//   3. Move the key and query functions out into ./lib/
-//   4. Clean-up JSON Query Select Function into ./lib/
+//   1. Move the key and query functions out into ./lib/
+//   2. Clean-up JSON Query Select Function into ./lib/
 program
-  .command('collect-interface-declarations <dir>')
-  .option(
-    /**
-     * Why not just use JSONQuery here or a single flag?
-     * https://github.com/mmckegg/json-query
-     *
-     * Would we also want to generate a JSON Schema for Typescript?
-     * https://github.com/vega/ts-json-schema-generator
-     *
-     * And maybe an option for KeyTree (returns simplified tree schema structure to assist)
-     *   with writing json-queries?
-     * */
-    '-q --query <query>',
-    'Query the metadata using JSONQuery'
-  )
-  .option('-k --key', 'Outputs the summary key for the data')
+  .command('ng-metadata-collect <dir>')
+  .option('-o --output <output>', 'Output file name for metadata file')
+  .option('-v --verbose', 'Verbosity level')
   .description('Scans typescript files in a directory to pull out classes, interfaces, and enums')
   .action((dir: string, cmd: program.Command) => {
     console.log(chalk.yellow.bold(`Scanning ${dir}`));
 
-    const query = cmd.opts()['query'] || null;
-    const outputKey = cmd.opts()['key'] || false;
+    const outputFile = cmd.opts()['output'] || null;
+    // TODO (ryan): Implement verbosity!
+    const verbose = cmd.opts()['verbose'] || false;
 
     const tsFiles = getTypescriptFileASTsFromDirectory(dir);
     let interfaceMatches = findFilesWithASTMatchingSelector(tsFiles, NgAstSelector.NgInterfaces);
@@ -500,22 +491,26 @@ program
       ts.transform(ast, [dm.collectMetadata(interfaces, filepath, dm.rootCollectorCallback)]);
     });
 
-    let metadata: Object | undefined = interfaces as Object;
-    console.log(
-      chalk.green.bold('Metadata'),
-      (query && chalk.bold.yellow(`with query of ${query}`)) || ''
-    );
-
-    if (query) {
-      metadata = JsonQuery(query, {
-        data: metadata,
-        locals: jsonQueryLocals,
-      }).value;
+    if (outputFile) {
+      console.log(chalk.green.bold('Saving metadata file to'), outputFile);
+      fs.writeFileSync(outputFile, JSON.stringify(interfaces, null, 2));
+    } else {
+      console.log(JSON.stringify(interfaces, null, 2));
     }
+  });
 
-    console.log(JSON.stringify(metadata, null, 2));
+program
+  .command('ng-metadata-key <filepath>')
+  .option('-o --output <output>', 'Output file name for metadata query results file')
+  .description(
+    'Generates an abbreviated interface key to facility the use of json-query syntax in ng-metadata-query command.'
+  )
+  .action((filepath: string, cmd: program.Command) => {
+    const outputFile = cmd.opts()['output'] || null;
 
-    if (outputKey && metadata) {
+    if (fs.existsSync(filepath)) {
+      const raw = fs.readFileSync(filepath, fileUtil.UTF8);
+      const metadata = JSON.parse(raw);
       console.log(chalk.bgGreen.black('Output key'));
       const key = generateKeyFromData(metadata);
       // console.log(JSON.stringify(key, null, 2));
@@ -526,7 +521,49 @@ program
 
       const trie = generateTrieFromKeyData(key);
       const triePresentation = generateKeyFromTrie(trie);
-      console.log(triePresentation);
+
+      if (outputFile) {
+        console.log(chalk.green.bold('Saving metadata file key to'), outputFile);
+        fs.writeFileSync(outputFile, triePresentation);
+      } else {
+        console.log(triePresentation, null, 2);
+      }
+    } else {
+      console.error(chalk.red('Metadata file does not exist'), filepath);
+    }
+  });
+
+program
+  .command('ng-metadata-query <query> <filepath>')
+  .option('-o --output <output>', 'Output file name for metadata file')
+  .description('Queries the file output of ng-metadata-collect using json-query syntax')
+  .action((query: string, filepath: string, cmd: program.Command) => {
+    const outputFile = cmd.opts()['output'] || null;
+
+    if (fs.existsSync(filepath)) {
+      const raw = fs.readFileSync(filepath, fileUtil.UTF8);
+      let metadata: Object = JSON.parse(raw);
+
+      if (query) {
+        metadata = JsonQuery(query, {
+          data: metadata,
+          locals: jsonQueryLocals,
+        }).value;
+      }
+
+      if (outputFile) {
+        console.log(chalk.green.bold('Saving metadata query results to'), outputFile);
+        fs.writeFileSync(outputFile, JSON.stringify(metadata, null, 2));
+      } else {
+        console.log(
+          chalk.green.bold('Metadata'),
+          (query && chalk.bold.yellow(`with query of ${query}`)) || ''
+        );
+
+        console.log(JSON.stringify(metadata, null, 2));
+      }
+    } else {
+      console.error(chalk.red('Metadata file does not exist'), filepath);
     }
   });
 

@@ -5,10 +5,12 @@ import { Component } from '@angular/core';
   template: `
     <main><h1>Aspect With Styles Component</h1></main>
   `,
-  styles: `
-  :host {
-    box-sizing: border-box;
-  }
-  `,
+  styles: [
+    `
+      :host {
+        box-sizing: border-box;
+      }
+    `,
+  ],
 })
 export class AspectsWithStylesComponent {}

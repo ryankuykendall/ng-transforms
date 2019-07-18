@@ -55,21 +55,20 @@ const inlineCSSFromFile = (
     if (styleUrlsArrayLE) {
       const stylesheetFilenames = aleUtil.mapToArrayOfStrings(styleUrlsArrayLE);
       if (stylesheetFilenames.length > 0) {
-        const stylesheets = stylesheetFilenames
-          .map(ssFilename => {
-            const ssFilepath = path.join(componentDirectory, ssFilename);
-            if (fs.existsSync(ssFilepath)) {
-              return fs.readFileSync(ssFilepath, fileUtil.UTF8);
-            }
+        const stylesheets: ts.StringLiteral[] = stylesheetFilenames.map(ssFilename => {
+          const ssFilepath = path.join(componentDirectory, ssFilename);
+          if (fs.existsSync(ssFilepath)) {
+            const css: string = fs.readFileSync(ssFilepath, fileUtil.UTF8);
+            return ts.createStringLiteral(css);
+          }
 
-            // TODO: Probably better to throw an error...
-            return `/** Missing stylesheet ${ssFilename} **/`;
-          })
-          .join('\n\n');
+          // TODO: Probably better to throw an error...
+          return ts.createStringLiteral(`/** Missing stylesheet ${ssFilename} **/`);
+        });
 
         const stylesProperty = ts.createPropertyAssignment(
           STYLES_PROPERTY_NAME,
-          ts.createStringLiteral(stylesheets)
+          ts.createArrayLiteral(stylesheets)
         );
 
         properties = oleUtil.removeProperty(properties, STYLE_URLS_PROPERTY_NAME);

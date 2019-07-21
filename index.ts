@@ -567,6 +567,8 @@ const attemptToGetFileContentsFromFilepaths = (filepaths: string[]): string | un
 };
 
 const loadComponentTemplateUrlContents = (build: IComponentInlineBuild): IComponentInlineModel => {
+  // NOTE (ryan): Should we throw an error if the component has both a template as well as
+  //   a templateUrl? What does Angular do when both are present?
   if (build.hasTemplateUrl && build.templateUrl) {
     const possibleFilepaths: string[] = [];
     if (build.buildDirname) {
@@ -602,8 +604,35 @@ const loadAllComponentStyleUrlsContent = (
 };
 
 const loadComponentStyleUrlsContent = (build: IComponentInlineBuild): IComponentInlineModel => {
-  // TODO (ryan): Finish this!
-  //   1. Wrap style contents in NoSubstitutionTemplateLiteral
+  // NOTE (ryan): Should we throw an error if the component has both a styles Array as well as
+  //   a styleUrls Array? What does Angular do when both are present?
+  if (build.hasStyleUrls && build.styleUrls && build.styleUrlsMap) {
+    const styleUrlContents: string[] = [];
+    build.styleUrls.forEach((url: string) => {
+      let styleUrl = url;
+      if (build.styleUrlsMap instanceof Map && build.styleUrlsMap.has(url)) {
+        styleUrl = build.styleUrlsMap.get(url) || url;
+      }
+
+      const possibleFilepaths: string[] = [];
+      if (build.buildDirname) {
+        const buildFilepath = path.resolve(
+          path.join(build.buildDirname, build.relativeDirname, styleUrl)
+        );
+        possibleFilepaths.push(buildFilepath);
+      }
+      const srcFilepath = path.resolve(path.join(build.dirname, styleUrl));
+      possibleFilepaths.push(srcFilepath);
+
+      const contents: string | undefined = attemptToGetFileContentsFromFilepaths(possibleFilepaths);
+      if (contents) {
+        styleUrlContents.push(contents);
+      }
+    });
+
+    build.styles = styleUrlContents;
+  }
+
   return build;
 };
 
@@ -616,6 +645,8 @@ const logModelStateToConsole = (models: IComponentInlineModel[]) => {
     JSON.stringify(
       models.map(model =>
         Object.assign({}, model, {
+          // NOTE (ryan): Another way to do this would be to filter out
+          //   entries that were instancesof ts.Node
           decorator: undefined,
           callExpression: undefined,
           objectLiteralExpression: undefined,
@@ -633,6 +664,7 @@ program
   .option('-R --rewrite', 'Rewrite file sources from transform')
   .option('-s --src <source>', 'Source directory root')
   .option('-b --build <build>', 'Build directory root')
+  .option('-p --pretty', 'Output files through Prettier')
   .action((dir: string, cmd: program.Command) => {
     /**
      * sourceDirectoryRoot and buildDirectoryRoot should be used together
@@ -694,10 +726,13 @@ program
      *     7. Pass templateUrl and styleUrl filenames and contents to transform
      *     8. Inline template and styles contents in transform
      *     9. Output nice clean TypeScript
+     *     10. Save updated files to disk
+     *     11. Implement prettier flag (to control degree to which output TS is modified)
      * */
 
     // TODO (ryan): Finish this!
     //   1. Wrap template contents in NoSubstitutionTemplateLiteral
+    //   2. Write styles content into NoSubstitutionTemplateLiterals
 
     // let components = componentDecoratorImportMatches;
     // if (sourceDirectoryRoot && buildDirectoryRoot) {

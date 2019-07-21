@@ -154,7 +154,17 @@ const findFilesWithASTMatchingSelector = (
   return result;
 };
 
-const generateTypescriptFromTransformationResult = (results: IFileTransformationResult[]): void => {
+// TODO (ryan): Clean this up!
+//   - This should be returning the typescript file contents and it should not be rewriting the filepath
+//   - This could likely be simplified to take the following arguments:
+//     - ts.SourceFile
+//     - filepath: string
+//     - pretty: boolean
+//   - ...and it should only work on one file at time.
+const generateTypescriptFromTransformationResult = (
+  results: IFileTransformationResult[],
+  pretty: boolean = false
+): void => {
   results.forEach(({ filepath, transformation }: IFileTransformationResult) => {
     const updatedComponentSFAST = transformation.transformed[0];
     const updatedFilepath = `${path.basename(filepath)}.element.ts`;
@@ -170,8 +180,11 @@ const generateTypescriptFromTransformationResult = (results: IFileTransformation
       .printNode(ts.EmitHint.SourceFile, updatedComponentSFAST, updatedSourceFile);
 
     console.log(chalk.green.bold('Transform result for'), filepath);
-    const prettyTS = prettierUtil.formatTypescript(updatedComponentSource);
-    console.log(prettyTS);
+
+    if (pretty) {
+      const prettyTS = prettierUtil.formatTypescript(updatedComponentSource);
+      console.log(prettyTS);
+    }
   });
 };
 
@@ -636,8 +649,76 @@ const loadComponentStyleUrlsContent = (build: IComponentInlineBuild): IComponent
   return build;
 };
 
+const inlineComponentAssetContentsFromModelTransform = (model: IComponentInlineModel) => {
+  const updatedOLEProperties: ts.ObjectLiteralElementLike[] = [];
+  model.objectLiteralExpression.properties.forEach((element: ts.ObjectLiteralElementLike) => {
+    if (element.name) {
+      const propertyName = element.name.getText();
+      switch (propertyName) {
+        case cdProperty.TemplateUrl:
+          if (model.template) {
+            const templateProperty = ts.createPropertyAssignment(
+              ts.createStringLiteral(cdProperty.Template),
+              ts.createNoSubstitutionTemplateLiteral(model.template)
+            );
+            updatedOLEProperties.push(templateProperty);
+          } else {
+            console.error(
+              chalk.bgRed.black.bold('Cannot inline template because it does not exist '),
+              model.templateUrl
+            );
+          }
+          break;
+        case cdProperty.StyleUrls:
+          if (model.styles) {
+            const styleItems = model.styles.map(
+              (style: string): ts.NoSubstitutionTemplateLiteral => {
+                return ts.createNoSubstitutionTemplateLiteral(style);
+              }
+            );
+            ts.createPropertyAssignment(
+              ts.createIdentifier(cdProperty.Styles),
+              ts.createArrayLiteral(styleItems, false)
+            );
+          } else {
+            console.error(
+              chalk.bgRed.black.bold('Cannot inline styles because they do not exist '),
+              model.styleUrls
+            );
+          }
+          break;
+        default:
+          updatedOLEProperties.push(element);
+          break;
+      }
+    }
+  });
+
+  const updatedOLE: ts.ObjectLiteralExpression = ts.createObjectLiteral(updatedOLEProperties);
+  model.callExpression.expression = updatedOLE;
+};
+
 const resolveDirectoryPathFragment = (fragment: string | undefined): string | undefined => {
   return fragment ? path.resolve(fragment) : undefined;
+};
+
+const ascendToSourceFileFromNode = (child: ts.Node): ts.SourceFile | undefined => {
+  // Ascend to source file
+  let sourceFileNode: ts.Node = child;
+  while (!ts.isSourceFile(sourceFileNode) && sourceFileNode.parent) {
+    sourceFileNode = sourceFileNode.parent;
+  }
+
+  if (ts.isSourceFile(sourceFileNode)) {
+    return sourceFileNode as ts.SourceFile;
+  } else {
+    console.error(
+      chalk.bgRed.black.bold('Node is not a descendant of SourceFile'),
+      child.getText()
+    );
+  }
+
+  return;
 };
 
 const logModelStateToConsole = (models: IComponentInlineModel[]) => {
@@ -707,6 +788,21 @@ program
     console.log(chalk.bgCyan.black('AFTER loading asset URLs'));
     logModelStateToConsole(models);
 
+    const updatedSourceFiles: ts.SourceFile[] = models
+      .map(
+        (model: IComponentInlineModel): ts.SourceFile | undefined => {
+          inlineComponentAssetContentsFromModelTransform(model);
+          return ascendToSourceFileFromNode(model.decorator);
+        }
+      )
+      .filter(
+        (node: ts.SourceFile | undefined) => node && ts.isSourceFile(node)
+      ) as ts.SourceFile[];
+
+    const uniqueSourceFiles: ts.SourceFile[] = Array.from(
+      new Set<ts.SourceFile>(updatedSourceFiles)
+    ) as ts.SourceFile[];
+
     /**
      * TODO (ryan): Need to significantly rethink this. The AST node in each of these
      *   QueryMatches is at the SourceFile root rather than at the level of the
@@ -722,10 +818,15 @@ program
      *     DONE 3. Build up results of step #2 into a single collection
      *     DONE 4. Iterate through component decorator collection to collect templateUrls
      *     DONE 5. Iterate through component decorator collection to collect styleUrls
-     *     6. Load contents of templateUrl and styleUrls
-     *     7. Pass templateUrl and styleUrl filenames and contents to transform
-     *     8. Inline template and styles contents in transform
-     *     9. Output nice clean TypeScript
+     *     DONE 6. Load contents of templateUrl and styleUrls
+     *     DONE 7. Pass templateUrl and styleUrl filenames and contents to transform
+     *     DONE 8. Inline template and styles contents in transform
+     *     DONE 8.5 For each model, ascend ancestry to SourceFile ts.node
+     *     DONE 8.6 Generate unique collection of SourceFile nodes (since there can be many components in a SourceFile)
+     *     9. Output nice clean TypeScript from SourceFile nodes
+     *     9.5 Refactor generateTypescriptFromTransformationResult per TODOs above
+     *     9.6 Refactor commands using generateTypescriptFromTransformationResult to conform
+     *         to new interface
      *     10. Save updated files to disk
      *     11. Implement prettier flag (to control degree to which output TS is modified)
      * */

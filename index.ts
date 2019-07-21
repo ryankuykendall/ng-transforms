@@ -551,13 +551,12 @@ const loadAllComponentTemplateUrlContents = (
 };
 
 const attemptToGetFileContentsFromFilepaths = (filepaths: string[]): string | undefined => {
-  const filepathsWithFiles: string[] = filepaths.filter((filepath: string) =>
+  const foundFilepath: string | undefined = filepaths.find((filepath: string) =>
     fs.existsSync(filepath)
   );
-  if (filepathsWithFiles.length > 0) {
-    const filepath = filepathsWithFiles[0];
-    console.info(chalk.bgGreen.black('Reading file contents from'), filepath);
-    return fs.readFileSync(filepath, fileUtil.UTF8);
+  if (foundFilepath) {
+    console.info(chalk.bgGreen.black('Reading file contents from: '), foundFilepath);
+    return fs.readFileSync(foundFilepath, fileUtil.UTF8);
   }
   console.error(
     chalk.bgRed.black.bold('Cannot find file contents at filepaths'),

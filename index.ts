@@ -19,6 +19,9 @@ import * as dm from './lib/declaration-metadata/index.metadata';
 // TODO (ryan): Wrap-up chalk with console.log && console.error into a separate module
 //   (and likely a singleton) to control output velocity levels across command runs.
 //   Add verbosity level as an option to general command flags.
+import * as logger from './lib/utils/logger.util';
+
+// Still need chalk in some cases until Command module refactor.
 import chalk from 'chalk';
 import * as glob from 'glob';
 import * as fs from 'fs';
@@ -110,15 +113,15 @@ const getTypescriptFileASTsFromDirectory = (dir: string): IFileAST[] => {
   }
 
   if (!fs.existsSync(scanDirPath)) {
-    console.log(chalk.red.bold(`Directory or file does not exist`), scanDirPath);
+    logger.error(`Directory or file does not exist`, scanDirPath);
   }
 
   let tsFiles: string[] = [scanDirPath];
   if (path.extname(scanDirPath) !== TS_FILE_EXTNAME) {
     tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
-    console.log(chalk.yellow.bold(`Processing files in`), scanDirPath);
+    logger.info(`Processing files in`, scanDirPath);
   } else {
-    console.log(chalk.yellow.bold('Processing file'), scanDirPath);
+    logger.info('Processing file', scanDirPath);
   }
 
   return tsFiles.map((filepath: string) => {
@@ -154,38 +157,40 @@ const findFilesWithASTMatchingSelector = (
   return result;
 };
 
-// TODO (ryan): Clean this up!
-//   - This should be returning the typescript file contents and it should not be rewriting the filepath
-//   - This could likely be simplified to take the following arguments:
-//     - ts.SourceFile
-//     - filepath: string
-//     - pretty: boolean
-//   - ...and it should only work on one file at time.
-const generateTypescriptFromTransformationResult = (
+const generateTypescriptFromTransformationResults = (
   results: IFileTransformationResult[],
   pretty: boolean = false
-): void => {
-  results.forEach(({ filepath, transformation }: IFileTransformationResult) => {
+): string[] => {
+  return results.map(({ filepath, transformation }: IFileTransformationResult) => {
     const updatedComponentSFAST = transformation.transformed[0];
     const updatedFilepath = `${path.basename(filepath)}.element.ts`;
-    const updatedSourceFile: ts.SourceFile = ts.createSourceFile(
-      updatedFilepath,
-      '',
-      ts.ScriptTarget.Latest,
-      true,
-      ts.ScriptKind.TS
-    );
-    const updatedComponentSource = ts
-      .createPrinter()
-      .printNode(ts.EmitHint.SourceFile, updatedComponentSFAST, updatedSourceFile);
-
-    console.log(chalk.green.bold('Transform result for'), filepath);
-
-    if (pretty) {
-      const prettyTS = prettierUtil.formatTypescript(updatedComponentSource);
-      console.log(prettyTS);
-    }
+    return generateTypescriptFromSourceFileAST(updatedComponentSFAST, updatedFilepath, pretty);
   });
+};
+
+const generateTypescriptFromSourceFileAST = (
+  node: ts.SourceFile,
+  filepath: string,
+  pretty: boolean = false
+): string => {
+  // QUESTION (ryan): Is creating this new ts.SourceFile necessary?
+  // const updatedComponentSFAST = transformation.transformed[0];
+  const updatedSourceFile: ts.SourceFile = ts.createSourceFile(
+    filepath,
+    '',
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
+  );
+  const updatedSource = ts
+    .createPrinter()
+    .printNode(ts.EmitHint.SourceFile, node, updatedSourceFile);
+
+  if (pretty) {
+    return prettierUtil.formatTypescript(updatedSource);
+  }
+
+  return updatedSource;
 };
 
 interface IOutputNode {
@@ -292,7 +297,7 @@ program.version(packageJSON.version);
 program.command('dump <dir>').action((dir: string, cmd: program.Command) => {
   const tsFiles = getTypescriptFileASTsFromDirectory(dir);
   tsFiles.forEach(({ filepath, ast }: IFileAST, index: number) => {
-    console.log('\n\n', chalk.green.bold(' - Processing file'), filepath, '\n');
+    logger.info(' - Processing file', filepath, '\n\n');
     dumpASTNode(ast, index);
   });
 });
@@ -307,10 +312,10 @@ program
     const tsFilesWithNodesMatchingSelector = findFilesWithASTMatchingSelector(tsFiles, selector);
     const ancestor = cmd.opts()['ancestor'] || null;
     tsFilesWithNodesMatchingSelector.forEach(({ filepath, matches }, fileIndex) => {
-      console.log('\n\n', chalk.blue.bold(`Processing file`), filepath);
+      logger.newline(2);
+      logger.info(`Processing file`, filepath);
       matches.forEach((node: ts.Node, index) => {
         while (ancestor && node.parent && ts.SyntaxKind[node.kind] != ancestor) {
-          // console.log(" - Going to parent", ancestor, ts.SyntaxKind[node.parent.kind]);
           node = node.parent;
         }
         dumpASTNode(node, index);
@@ -320,10 +325,10 @@ program
 
 program.command('dump-imports <dir>').action((dir: string, cmd: program.Command) => {
   const scanDirPath = path.join(process.cwd(), dir);
-  console.log(chalk.yellow.bold(`Scanning files in`), scanDirPath);
+  logger.info(`Scanning files in`, scanDirPath);
 
   if (!fs.existsSync(scanDirPath)) {
-    console.log(chalk.red.bold(`Directory does note exist`), scanDirPath);
+    logger.error(`Directory does note exist`, scanDirPath);
   }
 
   const tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
@@ -332,7 +337,8 @@ program.command('dump-imports <dir>').action((dir: string, cmd: program.Command)
     const ast = tsquery.ast(source);
     const nodes = tsquery(ast, `ImportDeclaration`);
     nodes.forEach((node, index) => {
-      console.log('\n\n', chalk.green.bold(' - Processing file'), filepath, '\n');
+      logger.newline(2);
+      logger.info(' - Processing file', filepath, '\n');
       dumpASTNode(node, index);
     });
   });
@@ -340,10 +346,10 @@ program.command('dump-imports <dir>').action((dir: string, cmd: program.Command)
 
 program.command('dump-classes <dir>').action((dir: string, cmd: program.Command) => {
   const scanDirPath = path.join(process.cwd(), dir);
-  console.log(chalk.yellow.bold(`Scanning components in`), scanDirPath);
+  logger.info(`Scanning components in`, scanDirPath);
 
   if (!fs.existsSync(scanDirPath)) {
-    console.log(chalk.red.bold(`Directory does note exist`), scanDirPath);
+    logger.error(`Directory does note exist`, scanDirPath);
   }
 
   const tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
@@ -352,24 +358,25 @@ program.command('dump-classes <dir>').action((dir: string, cmd: program.Command)
     const ast = tsquery.ast(source);
     const nodes = tsquery(ast, `ClassDeclaration`);
     nodes.forEach((node, index) => {
-      console.log('\n\n', chalk.green.bold(' - Processing file'), filepath, '\n');
+      logger.newline(2);
+      logger.info(' - Processing file', filepath, '\n');
       dumpASTNode(node, index);
     });
   });
 });
 
 program.command('dump-directives <dir>').action((dir: string, cmd: program.Command) => {
-  console.log(chalk.yellow.bold(`Scanning directives in ${dir}`));
+  logger.info(`Scanning directives in ${dir}`);
 });
 
 program
   .command('dump-component-class-decorators <dir>')
   .action((dir: string, cmd: program.Command) => {
     const scanDirPath = path.join(process.cwd(), dir);
-    console.log(chalk.yellow.bold(`Scanning component class decorators in ${dir}`));
+    logger.info(`Scanning component class decorators in ${dir}`);
 
     if (!fs.existsSync(scanDirPath)) {
-      console.log(chalk.red.bold(`Directory does note exist`), scanDirPath);
+      logger.error(`Directory does note exist`, scanDirPath);
     }
 
     const tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
@@ -378,7 +385,8 @@ program
       const ast = tsquery.ast(source);
       const nodes = tsquery(ast, `ClassDeclaration Decorator[name.name="Component"]`);
       nodes.forEach((node, index) => {
-        console.log('\n\n', chalk.green.bold(' - Processing file'), filepath, '\n');
+        logger.newline(2);
+        logger.info(' - Processing file', filepath, '\n');
         dumpASTNode(node, index);
       });
     });
@@ -387,17 +395,17 @@ program
 program
   .command('dump-component-attribute-decorators <dir>')
   .action((dir: string, cmd: program.Command) => {
-    console.log(chalk.yellow.bold(`Scanning component attribute decorators in ${dir}`));
+    logger.info(`Scanning component attribute decorators in ${dir}`);
   });
 
 program.command('dump-interfaces <dir>').action((dir: string, cmd: program.Command) => {
-  console.log(chalk.yellow.bold(`Scanning interfaces in ${dir}`));
+  logger.info(`Scanning interfaces in ${dir}`);
 });
 
 program
   .command('component-transform-add-view-encapsulation-shadow-dom <dir>')
   .action((dir: string, cmd: program.Command) => {
-    console.log(chalk.yellow.bold(`Scanning ${dir}`));
+    logger.info(`Scanning ${dir}`);
 
     const tsFiles = getTypescriptFileASTsFromDirectory(dir);
     const componentDecoratorImportMatches = findFilesWithASTMatchingSelector(
@@ -424,7 +432,15 @@ program
       }
     );
 
-    generateTypescriptFromTransformationResult(transformationResults);
+    const outputTSFiles: string[] = generateTypescriptFromTransformationResults(
+      transformationResults,
+      true
+    );
+
+    outputTSFiles.forEach((file: string) => {
+      logger.success('Component transform');
+      console.log(file);
+    });
   });
 
 interface IComponentDecoratorRef {
@@ -568,14 +584,11 @@ const attemptToGetFileContentsFromFilepaths = (filepaths: string[]): string | un
     fs.existsSync(filepath)
   );
   if (foundFilepath) {
-    console.info(chalk.bgGreen.black('Reading file contents from: '), foundFilepath);
+    logger.info('Reading file contents from: ', foundFilepath);
     return fs.readFileSync(foundFilepath, fileUtil.UTF8);
   }
-  console.error(
-    chalk.bgRed.black.bold('Cannot find file contents at filepaths'),
-    filepaths.join(', ')
-  );
 
+  logger.error('Cannot find file contents at filepaths', filepaths.join(', '));
   return undefined;
 };
 
@@ -655,36 +668,41 @@ const inlineComponentAssetContentsFromModelTransform = (model: IComponentInlineM
     if (element.name) {
       const propertyName = element.name.getText();
       switch (propertyName) {
+        case cdProperty.Template:
+          // Template already existed in decorator, so just add it to the new OLE.
+          if (!model.hasTemplateUrl) {
+            updatedOLEProperties.push(element);
+          }
+          break;
+        case cdProperty.Styles:
+          // Styles already existed in decorator, so just add them to the new OLE.
+          if (!model.hasStyleUrls) {
+            updatedOLEProperties.push(element);
+          }
+          break;
         case cdProperty.TemplateUrl:
-          if (model.template) {
+          if (model.hasTemplateUrl && model.template) {
             const templateProperty = ts.createPropertyAssignment(
               ts.createStringLiteral(cdProperty.Template),
               ts.createNoSubstitutionTemplateLiteral(model.template)
             );
             updatedOLEProperties.push(templateProperty);
           } else {
-            console.error(
-              chalk.bgRed.black.bold('Cannot inline template because it does not exist '),
-              model.templateUrl
-            );
+            updatedOLEProperties.push(element);
           }
           break;
         case cdProperty.StyleUrls:
-          if (model.styles) {
+          if (model.hasStyleUrls && model.styles) {
             const styleItems = model.styles.map(
               (style: string): ts.NoSubstitutionTemplateLiteral => {
                 return ts.createNoSubstitutionTemplateLiteral(style);
               }
             );
-            ts.createPropertyAssignment(
+            const stylesProperty = ts.createPropertyAssignment(
               ts.createIdentifier(cdProperty.Styles),
               ts.createArrayLiteral(styleItems, false)
             );
-          } else {
-            console.error(
-              chalk.bgRed.black.bold('Cannot inline styles because they do not exist '),
-              model.styleUrls
-            );
+            updatedOLEProperties.push(stylesProperty);
           }
           break;
         default:
@@ -712,10 +730,7 @@ const ascendToSourceFileFromNode = (child: ts.Node): ts.SourceFile | undefined =
   if (ts.isSourceFile(sourceFileNode)) {
     return sourceFileNode as ts.SourceFile;
   } else {
-    console.error(
-      chalk.bgRed.black.bold('Node is not a descendant of SourceFile'),
-      child.getText()
-    );
+    logger.error('Node is not a descendant of SourceFile', child.getText());
   }
 
   return;
@@ -755,9 +770,10 @@ program
      */
 
     const rewriteSourceFiles: boolean = cmd.opts()['output'] || false;
+    const pretty: boolean = cmd.opts()['pretty'] || false;
     const srcDirname = resolveDirectoryPathFragment(cmd.opts()['src']);
     const buildDirname = resolveDirectoryPathFragment(cmd.opts()['build']);
-    console.log('Directories in args', srcDirname, buildDirname);
+    logger.info('Directories in args', srcDirname || '[unknown]', buildDirname || '[unknown]');
 
     const tsFiles = getTypescriptFileASTsFromDirectory(dir);
     const sourceFileMatches = findFilesWithASTMatchingSelector(
@@ -778,14 +794,14 @@ program
       }
     );
 
-    console.log(chalk.bgGreen.black('BEFORE loading asset URLs'));
+    logger.info('BEFORE loading asset URLs');
     logModelStateToConsole(models);
 
     // Update models with the contents of templateUrl and styleUrls
     models = loadAllComponentTemplateUrlContents(models, buildDirname);
     models = loadAllComponentStyleUrlsContent(models, buildDirname);
 
-    console.log(chalk.bgCyan.black('AFTER loading asset URLs'));
+    logger.info('AFTER loading asset URLs');
     logModelStateToConsole(models);
 
     const updatedSourceFiles: ts.SourceFile[] = models
@@ -802,6 +818,12 @@ program
     const uniqueSourceFiles: ts.SourceFile[] = Array.from(
       new Set<ts.SourceFile>(updatedSourceFiles)
     ) as ts.SourceFile[];
+
+    uniqueSourceFiles.forEach((file: ts.SourceFile) => {
+      const result: string = generateTypescriptFromSourceFileAST(file, file.fileName, pretty);
+      logger.info('Transform results');
+      console.log(result);
+    });
 
     /**
      * TODO (ryan): Need to significantly rethink this. The AST node in each of these
@@ -823,12 +845,12 @@ program
      *     DONE 8. Inline template and styles contents in transform
      *     DONE 8.5 For each model, ascend ancestry to SourceFile ts.node
      *     DONE 8.6 Generate unique collection of SourceFile nodes (since there can be many components in a SourceFile)
-     *     9. Output nice clean TypeScript from SourceFile nodes
-     *     9.5 Refactor generateTypescriptFromTransformationResult per TODOs above
-     *     9.6 Refactor commands using generateTypescriptFromTransformationResult to conform
+     *     DONE 9. Output nice clean TypeScript from SourceFile nodes
+     *     DONE 9.5 Refactor generateTypescriptFromTransformationResult per TODOs above
+     *     DONE 9.6 Refactor commands using generateTypescriptFromTransformationResult to conform
      *         to new interface
      *     10. Save updated files to disk
-     *     11. Implement prettier flag (to control degree to which output TS is modified)
+     *     DONE 11. Implement prettier flag (to control degree to which output TS is modified)
      * */
 
     // TODO (ryan): Finish this!
@@ -899,10 +921,10 @@ program
   .command('wrap-component-in-namespace <namespace> <dir>')
   .description('Wraps Component class decorations in a namespace.')
   .action((namespace: string, dir: string, cmd: program.Command) => {
-    console.log(chalk.green.bold('Wrapping components in namespaces'), namespace);
-    console.log(chalk.yellow.bold(`Scanning ${dir}`));
+    logger.info('Wrapping components in namespaces', namespace);
+    logger.info(`Scanning ${dir}`);
     const namespaceItems = namespace.split('.');
-    console.log('Namespace items', namespaceItems);
+    logger.info('Namespace items', ...namespaceItems);
 
     const tsFiles = getTypescriptFileASTsFromDirectory(dir);
     const transformationResults: IFileTransformationResult[] = tsFiles.map(
@@ -921,7 +943,15 @@ program
       }
     );
 
-    generateTypescriptFromTransformationResult(transformationResults);
+    const outputTSFiles: string[] = generateTypescriptFromTransformationResults(
+      transformationResults,
+      true
+    );
+
+    outputTSFiles.forEach((file: string) => {
+      logger.success('Component wrapped in namespace', namespace);
+      console.log(file);
+    });
   });
 
 // TODO (ryan): Move these to lib.
@@ -958,7 +988,7 @@ program
   .option('-v --verbose', 'Verbosity level')
   .description('Scans typescript files in a directory to pull out classes, interfaces, and enums')
   .action((dir: string, cmd: program.Command) => {
-    console.log(chalk.yellow.bold(`Scanning ${dir}`));
+    logger.info(`Scanning ${dir}`);
 
     const outputFile = cmd.opts()['output'] || null;
     // TODO (ryan): Implement verbosity!
@@ -985,7 +1015,7 @@ program
     });
 
     if (outputFile) {
-      console.log(chalk.green.bold('Saving metadata file to'), outputFile);
+      logger.info('Saving metadata file to', outputFile);
       fs.writeFileSync(outputFile, JSON.stringify(interfaces, null, 2));
     } else {
       console.log(JSON.stringify(interfaces, null, 2));
@@ -1004,7 +1034,7 @@ program
     if (fs.existsSync(filepath)) {
       const raw = fs.readFileSync(filepath, fileUtil.UTF8);
       const metadata = JSON.parse(raw);
-      console.log(chalk.bgGreen.black('Output key'));
+      logger.success('Output key');
       const key = generateKeyFromData(metadata);
       // console.log(JSON.stringify(key, null, 2));
 
@@ -1016,13 +1046,13 @@ program
       const triePresentation = generateKeyFromTrie(trie);
 
       if (outputFile) {
-        console.log(chalk.green.bold('Saving metadata file key to'), outputFile);
         fs.writeFileSync(outputFile, triePresentation);
+        logger.success('Saving metadata file key to', outputFile);
       } else {
         console.log(triePresentation, null, 2);
       }
     } else {
-      console.error(chalk.red('Metadata file does not exist'), filepath);
+      logger.error('Metadata file does not exist', filepath);
     }
   });
 
@@ -1045,8 +1075,8 @@ program
       }
 
       if (outputFile) {
-        console.log(chalk.green.bold('Saving metadata query results to'), outputFile);
         fs.writeFileSync(outputFile, JSON.stringify(metadata, null, 2));
+        logger.success('Saving metadata query results to', outputFile);
       } else {
         console.log(
           chalk.green.bold('Metadata'),
@@ -1056,7 +1086,7 @@ program
         console.log(JSON.stringify(metadata, null, 2));
       }
     } else {
-      console.error(chalk.red('Metadata file does not exist'), filepath);
+      logger.error('Metadata file does not exist', filepath);
     }
   });
 

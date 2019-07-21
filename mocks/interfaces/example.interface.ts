@@ -20,7 +20,6 @@ export interface InterfaceExample {
 
   otherFunc1(): number;
   otherFunc2(arg1: string): number;
-  // // TODO (ryan): FIGURE OUT HANDLING ARRAY TYPE NODES!!!
   otherFunc3(arg1: string, arg2: boolean): number[];
   otherFunc4Enum(arg1: string, arg2: boolean): EnumType[];
   otherFunc5ComplexReturn(): Map<TestType, Set<EnumType[]>>[];

@@ -10,9 +10,11 @@ import * as cdt from './lib/transforms/components/component-decorator.transform'
 import * as compClassDecTrans from './lib/transforms/components/class-declaration.transform';
 import * as fileUtil from './lib/utils/file.util';
 import * as prettierUtil from './lib/utils/prettier.util';
+import * as aleUtil from './lib/utils/array-literal-expression.util';
+import * as oleUtil from './lib/utils/object-literal-expression.util';
+import { Property as cdProperty } from './lib/declaration-metadata/component-decorator.properties';
 
 import * as dm from './lib/declaration-metadata/index.metadata';
-import * as dmIfIf from './lib/declaration-metadata/interface.interface';
 
 // TODO (ryan): Wrap-up chalk with console.log && console.error into a separate module
 //   (and likely a singleton) to control output velocity levels across command runs.
@@ -49,12 +51,19 @@ enum NgAstSelector {
   // For the following, would still need to backtrack to ImportDeclaration
   NgImportComponentDecoratorFromCore = "ImportDeclaration:has(ImportClause:has(NamedImports ImportSpecifier Identifier[name='Component'])) StringLiteral[value=/@angular/][value=/core/]",
   NgInterfaces = 'ClassDeclaration, InterfaceDeclaration, EnumDeclaration, SourceFile > FunctionDeclaration, SourceFile > ArrowFunction, SourceFile > TypeAliasDeclaration',
+  ComponentDecoratorOnClassDeclaration = "ClassDeclaration Decorator:has(Identifier[name='Component'])",
+  ImportDeclarationWithTestInModuleSpecifier = 'ImportDeclaration[moduleSpecifier.text=/test/]',
+  ComponentTemplateUrlTSQuery = "ClassDeclaration Decorator:has(CallExpression[expression.escapedText='Component']) PropertyAssignment[name.escapedText='templateUrl']",
+  ComponentStyleUrlsTSQuery = "ClassDeclaration Decorator:has(CallExpression[expression.escapedText='Component']) PropertyAssignment[name.escapedText='styleUrls']",
 }
 
 interface IFileAST {
   filepath: string;
   source: string;
   ast: ts.Node;
+  srcDirectory?: string;
+  buildDirectory?: string;
+  relativeDirname?: string;
 }
 
 interface IFileASTQueryMatch extends IFileAST {
@@ -405,6 +414,352 @@ program
     generateTypescriptFromTransformationResult(transformationResults);
   });
 
+interface IComponentDecoratorRef {
+  // File system
+  filepath: string;
+  dirname: string;
+  // AST Nodes
+  decorator: ts.Decorator;
+}
+
+const generateComponentDecoratorRefs = (
+  sourceFileMatches: IFileASTQueryMatch[]
+): IComponentDecoratorRef[] => {
+  return sourceFileMatches.reduce(
+    (
+      collection: IComponentDecoratorRef[],
+      fileMatch: IFileASTQueryMatch
+    ): IComponentDecoratorRef[] => {
+      const refs: IComponentDecoratorRef[] = fileMatch.matches.map(
+        (decorator: ts.Node): IComponentDecoratorRef => {
+          const { filepath } = fileMatch;
+          const dirname = path.dirname(filepath);
+          return {
+            filepath,
+            dirname,
+            decorator: decorator as ts.Decorator,
+          };
+        }
+      );
+      return [...collection, ...refs];
+    },
+    []
+  );
+};
+
+interface IComponentInlineModel extends IComponentDecoratorRef {
+  // File system
+  relativeDirname: string;
+
+  // AST Nodes
+  callExpression: ts.CallExpression;
+  objectLiteralExpression: ts.ObjectLiteralExpression;
+
+  // Assets
+  template?: string;
+  hasTemplateUrl: boolean; // Present to determine if we need to prune this property after transform.
+  templateUrl?: string;
+  styles?: string[];
+  hasStyleUrls: boolean; // Present to determine if we need to prune this property after transform.
+  styleUrls?: string[]; // Need this to preserve order as well as the needing the map!
+  styleUrlsMap?: Map<string, string>;
+}
+
+interface IComponentInlineBuild extends IComponentInlineModel {
+  buildDirname?: string;
+}
+
+const CSS_FILE_EXTENSION = 'css';
+const SCSS_FILE_EXTENSION = 'scss';
+const SCSS_REPLACE_REGEXP = /\.scss$/;
+
+const generateComponentInlineModel = (
+  { filepath, dirname, decorator }: IComponentDecoratorRef,
+  srcDirectory: string | undefined
+): IComponentInlineModel => {
+  // File system and assets
+  let relativeDirname = path.dirname(filepath);
+  if (srcDirectory) {
+    relativeDirname = path.relative(srcDirectory, relativeDirname);
+  }
+
+  // AST
+  const callExpression = decorator.expression as ts.CallExpression;
+  const objectLiteralExpression = callExpression.arguments[0] as ts.ObjectLiteralExpression;
+  const oleProperties: ts.ObjectLiteralElementLike[] = objectLiteralExpression.properties.map(
+    (node: ts.ObjectLiteralElementLike) => node
+  );
+
+  const template =
+    oleUtil.getPropertyAsString(oleProperties, cdProperty.Template, true) || undefined;
+  const templateUrl =
+    oleUtil.getPropertyAsString(oleProperties, cdProperty.TemplateUrl, true) || undefined;
+  const hasTemplateUrl: boolean = !!templateUrl;
+  const stylesALE = oleUtil.getPropertyAsArrayLiteralExpression(oleProperties, cdProperty.Styles);
+  const styles = stylesALE ? aleUtil.mapToArrayOfStrings(stylesALE) : undefined;
+  const styleUrlsALE =
+    oleUtil.getPropertyAsArrayLiteralExpression(oleProperties, cdProperty.StyleUrls) || undefined;
+  const styleUrls = styleUrlsALE ? aleUtil.mapToArrayOfStrings(styleUrlsALE) : undefined;
+  const styleUrlsMap = styleUrls
+    ? styleUrls.reduce((urlMap: Map<string, string>, url: string): Map<string, string> => {
+        let value = url;
+        const extension = path.extname(value).split('.')[1];
+        if (extension === SCSS_FILE_EXTENSION) {
+          value = value.replace(SCSS_REPLACE_REGEXP, `.${CSS_FILE_EXTENSION}`);
+        }
+        urlMap.set(url, value);
+        return urlMap;
+      }, new Map<string, string>())
+    : undefined;
+  const hasStyleUrls: boolean = !!styleUrlsALE;
+
+  return {
+    // File system
+    filepath,
+    dirname,
+    relativeDirname,
+
+    // AST Nodes
+    decorator,
+    callExpression,
+    objectLiteralExpression,
+
+    // Assets
+    template,
+    hasTemplateUrl,
+    templateUrl,
+
+    styles,
+    hasStyleUrls,
+    styleUrls,
+    styleUrlsMap,
+  };
+};
+
+const loadAllComponentTemplateUrlContents = (
+  models: IComponentInlineModel[],
+  buildDirectory: string | undefined
+): IComponentInlineModel[] => {
+  return models
+    .map(
+      (model: IComponentInlineModel): IComponentInlineBuild => {
+        const buildDirname: string | undefined = buildDirectory || undefined;
+        return Object.assign({}, model, { buildDirname });
+      }
+    )
+    .map(loadComponentTemplateUrlContents);
+};
+
+const attemptToGetFileContentsFromFilepaths = (filepaths: string[]): string | undefined => {
+  const filepathsWithFiles: string[] = filepaths.filter((filepath: string) =>
+    fs.existsSync(filepath)
+  );
+  if (filepathsWithFiles.length > 0) {
+    const filepath = filepathsWithFiles[0];
+    console.info(chalk.bgGreen.black('Reading file contents from'), filepath);
+    return fs.readFileSync(filepath, fileUtil.UTF8);
+  }
+  console.error(
+    chalk.bgRed.black.bold('Cannot find file contents at filepaths'),
+    filepaths.join(', ')
+  );
+
+  return undefined;
+};
+
+const loadComponentTemplateUrlContents = (build: IComponentInlineBuild): IComponentInlineModel => {
+  if (build.hasTemplateUrl && build.templateUrl) {
+    const possibleFilepaths: string[] = [];
+    if (build.buildDirname) {
+      const buildFilepath = path.resolve(
+        path.join(build.buildDirname, build.relativeDirname, build.templateUrl)
+      );
+      possibleFilepaths.push(buildFilepath);
+    }
+    const srcFilepath = path.resolve(path.join(build.dirname, build.templateUrl));
+    possibleFilepaths.push(srcFilepath);
+
+    const contents: string | undefined = attemptToGetFileContentsFromFilepaths(possibleFilepaths);
+    if (contents) {
+      build.template = contents;
+    }
+  }
+
+  return build;
+};
+
+const loadAllComponentStyleUrlsContent = (
+  models: IComponentInlineModel[],
+  buildDirectory: string | undefined
+): IComponentInlineModel[] => {
+  return models
+    .map(
+      (model: IComponentInlineModel): IComponentInlineBuild => {
+        const buildDirname: string | undefined = buildDirectory || undefined;
+        return Object.assign({}, model, { buildDirname });
+      }
+    )
+    .map(loadComponentStyleUrlsContent);
+};
+
+const loadComponentStyleUrlsContent = (build: IComponentInlineBuild): IComponentInlineModel => {
+  // TODO (ryan): Finish this!
+  //   1. Wrap style contents in NoSubstitutionTemplateLiteral
+  return build;
+};
+
+const resolveDirectoryPathFragment = (fragment: string | undefined): string | undefined => {
+  return fragment ? path.resolve(fragment) : undefined;
+};
+
+const logModelStateToConsole = (models: IComponentInlineModel[]) => {
+  console.log(
+    JSON.stringify(
+      models.map(model =>
+        Object.assign({}, model, {
+          decorator: undefined,
+          callExpression: undefined,
+          objectLiteralExpression: undefined,
+          styleUrlsMap: model.styleUrlsMap ? Array.from(model.styleUrlsMap.entries()) : undefined,
+        })
+      ),
+      null,
+      2
+    )
+  );
+};
+
+program
+  .command('ng-inline-resources <dir>')
+  .option('-R --rewrite', 'Rewrite file sources from transform')
+  .option('-s --src <source>', 'Source directory root')
+  .option('-b --build <build>', 'Build directory root')
+  .action((dir: string, cmd: program.Command) => {
+    /**
+     * sourceDirectoryRoot and buildDirectoryRoot should be used together
+     *   to read out compiled assets from the build directory (templatesUrls
+     *   and processes .scss styles) based on where they were located in the
+     *   src directory!
+     */
+
+    const rewriteSourceFiles: boolean = cmd.opts()['output'] || false;
+    const srcDirname = resolveDirectoryPathFragment(cmd.opts()['src']);
+    const buildDirname = resolveDirectoryPathFragment(cmd.opts()['build']);
+    console.log('Directories in args', srcDirname, buildDirname);
+
+    const tsFiles = getTypescriptFileASTsFromDirectory(dir);
+    const sourceFileMatches = findFilesWithASTMatchingSelector(
+      tsFiles,
+      NgAstSelector.ComponentDecoratorOnClassDeclaration
+    ).filter((fileMatch: IFileASTQueryMatch) => {
+      const result = tsquery(
+        fileMatch.ast,
+        NgAstSelector.ImportDeclarationWithTestInModuleSpecifier
+      );
+      return result.length === 0;
+    });
+
+    const refs = generateComponentDecoratorRefs(sourceFileMatches);
+    let models: IComponentInlineModel[] = refs.map(
+      (ref: IComponentDecoratorRef): IComponentInlineModel => {
+        return generateComponentInlineModel(ref, srcDirname);
+      }
+    );
+
+    console.log(chalk.bgGreen.black('BEFORE loading asset URLs'));
+    logModelStateToConsole(models);
+
+    // Update models with the contents of templateUrl and styleUrls
+    models = loadAllComponentTemplateUrlContents(models, buildDirname);
+    models = loadAllComponentStyleUrlsContent(models, buildDirname);
+
+    console.log(chalk.bgCyan.black('AFTER loading asset URLs'));
+    logModelStateToConsole(models);
+
+    /**
+     * TODO (ryan): Need to significantly rethink this. The AST node in each of these
+     *   QueryMatches is at the SourceFile root rather than at the level of the
+     *   ClassDeclaration with a Component decorator.
+     *
+     *   We should be building up a collection of those ClassDeclaration nodes and
+     *   running our transform over those nodes directly. So order of operations
+     *   should be:
+     *
+     *     DONE 1. Iterate through each SourceFile query match
+     *     DONE 2. Query for all of the ClassDeclarations with Component Decorators
+     *     DONE 2.5 Filter out all of the test files.
+     *     DONE 3. Build up results of step #2 into a single collection
+     *     DONE 4. Iterate through component decorator collection to collect templateUrls
+     *     DONE 5. Iterate through component decorator collection to collect styleUrls
+     *     6. Load contents of templateUrl and styleUrls
+     *     7. Pass templateUrl and styleUrl filenames and contents to transform
+     *     8. Inline template and styles contents in transform
+     *     9. Output nice clean TypeScript
+     * */
+
+    // TODO (ryan): Finish this!
+    //   1. Wrap template contents in NoSubstitutionTemplateLiteral
+
+    // let components = componentDecoratorImportMatches;
+    // if (sourceDirectoryRoot && buildDirectoryRoot) {
+    //   components = componentDecoratorImportMatches.map((queryMatch: IFileASTQueryMatch) => {
+    //     // TODO (ryan): Resolve these correctly
+    //     const srcDirectory = path.resolve(sourceDirectoryRoot);
+    //     const buildDirectory = path.resolve(buildDirectoryRoot);
+    //     const relativeDirname = path.dirname(path.relative(srcDirectory, queryMatch.filepath));
+    //     const componentDecorator = tsquery(queryMatch.ast, 'ClassDeclaration Decorators[]');
+
+    //     return {
+    //       ...queryMatch,
+    //       srcDirectory,
+    //       buildDirectory,
+    //       relativeDirname,
+    //     };
+    //   });
+    // }
+
+    // console.log(
+    //   'Query Matches with directories',
+    //   JSON.stringify(
+    //     components.map(component => {
+    //       return {
+    //         ...component,
+    //         // Prune the AST to drop circular structure.
+    //         ast: null,
+    //         matches: [],
+    //         src: '',
+    //       };
+    //     }),
+    //     null,
+    //     2
+    //   )
+    // );
+
+    // const transformationResults = components.map(
+    //   ({ filepath, source, ast }): IFileTransformationResult => {
+    //     const transformation = ts.transform(ast, [
+    //       ct.inlineHTMLTemplateFromFileInComponentDecoratorTransformer(filepath),
+    //       cdt.inlineCSSFromFileTransformer(filepath),
+    //     ]) as ts.TransformationResult<ts.SourceFile>;
+
+    //     return {
+    //       filepath,
+    //       source,
+    //       ast,
+    //       transformation,
+    //     };
+    //   }
+    // );
+
+    // if (rewriteSourceFiles) {
+    //   console.log(chalk.green.bold('Rewriting source files'));
+    //   generateTypescriptFromTransformationResult(transformationResults);
+    // } else {
+    //   console.log(chalk.green.bold('Outputting source files to stdout'));
+    //   generateTypescriptFromTransformationResult(transformationResults);
+    // }
+  });
+
 program
   .command('wrap-component-in-namespace <namespace> <dir>')
   .description('Wraps Component class decorations in a namespace.')
@@ -480,7 +835,10 @@ program
       // Filter out all of the test files/specs.
       // TODO (ryan): Make this more robust. Using a regex for test
       //   in the ModuleSpecifier may be overly broad.
-      const testResults = tsquery(fileMatch.ast, 'ImportDeclaration[moduleSpecifier.text=/test/]');
+      const testResults = tsquery(
+        fileMatch.ast,
+        NgAstSelector.ImportDeclarationWithTestInModuleSpecifier
+      );
       return testResults.length === 0;
     });
 

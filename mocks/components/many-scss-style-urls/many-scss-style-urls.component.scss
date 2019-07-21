@@ -1,0 +1,11 @@
+$font-stack: Helvetica, sans-serif;
+$primary-color: #333;
+
+:ng-host {
+  box-sizing: border-box;
+}
+
+main {
+  font: 100% $font-stack;
+  color: $primary-color;
+}

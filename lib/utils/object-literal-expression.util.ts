@@ -1,22 +1,29 @@
 import ts from 'typescript';
+import * as strLitUtil from './string-literal.util';
 
-export const keys = (obj: ts.ObjectLiteralExpression):string[] => {
+export const keys = (obj: ts.ObjectLiteralExpression): string[] => {
   return obj.properties.map(prop => (prop.name as ts.Identifier).escapedText as string);
 };
 
-export const hasKey = (obj: ts.ObjectLiteralExpression, key: string):boolean => {
+export const hasKey = (obj: ts.ObjectLiteralExpression, key: string): boolean => {
   return keys(obj).includes(key);
-}
+};
 
-export const removeProperty = (props: ts.ObjectLiteralElementLike[], key: string):ts.ObjectLiteralElementLike[] => {
+export const removeProperty = (
+  props: ts.ObjectLiteralElementLike[],
+  key: string
+): ts.ObjectLiteralElementLike[] => {
   return props.filter(prop => {
-    return (prop.name as ts.Identifier).escapedText as string !== key;
+    return ((prop.name as ts.Identifier).escapedText as string) !== key;
   });
 };
 
-const __getProperty = (props: ts.ObjectLiteralElementLike[], key: string): ts.PropertyAssignment | undefined => {
+const __getProperty = (
+  props: ts.ObjectLiteralElementLike[],
+  key: string
+): ts.PropertyAssignment | undefined => {
   const propAssignment = props.find(prop => {
-    return (prop.name as ts.Identifier).escapedText as string === key;
+    return ((prop.name as ts.Identifier).escapedText as string) === key;
   });
 
   if (propAssignment && ts.isPropertyAssignment(propAssignment)) {
@@ -26,21 +33,37 @@ const __getProperty = (props: ts.ObjectLiteralElementLike[], key: string): ts.Pr
   return undefined;
 };
 
-export const getPropertyAsPropertyAssignment = (props: ts.ObjectLiteralElementLike[], key: string): ts.PropertyAssignment | undefined => {
+export const getPropertyAsPropertyAssignment = (
+  props: ts.ObjectLiteralElementLike[],
+  key: string
+): ts.PropertyAssignment | undefined => {
   return __getProperty(props, key);
 };
 
-export const getPropertyAsString = (props: ts.ObjectLiteralElementLike[], key: string):string | null => {
+export const getPropertyAsString = (
+  props: ts.ObjectLiteralElementLike[],
+  key: string,
+  stripQuotes: boolean = false
+): string | null => {
   const propAssignment = __getProperty(props, key);
 
   if (propAssignment && ts.isPropertyAssignment(propAssignment)) {
-    return propAssignment.initializer.getText() as string;
+    const initializer = propAssignment.initializer;
+
+    if (stripQuotes) {
+      return strLitUtil.stripQuotes(initializer);
+    }
+
+    return initializer.getText() as string;
   }
 
   return null;
 };
 
-export const getPropertyAsArrayLiteralExpression = (props: ts.ObjectLiteralElementLike[], key: string): ts.ArrayLiteralExpression | null => {
+export const getPropertyAsArrayLiteralExpression = (
+  props: ts.ObjectLiteralElementLike[],
+  key: string
+): ts.ArrayLiteralExpression | null => {
   let propAssignment = __getProperty(props, key);
 
   if (propAssignment && ts.isPropertyAssignment(propAssignment)) {
@@ -55,4 +78,4 @@ export const getPropertyAsArrayLiteralExpression = (props: ts.ObjectLiteralEleme
   }
 
   return null;
-}
+};

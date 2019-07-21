@@ -1,0 +1,9 @@
+$background-color: transparent;
+
+ol,
+ul {
+  background-color: $background-color;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

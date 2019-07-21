@@ -29,6 +29,15 @@ import { IMethodParameter } from './method.interface';
 //  Should a good deal of this be moved to the directive.metadata file?
 //  Or should it be shared?
 
+/**
+ * TODOs (ryan):
+ *   1. Make sure to capture the templateUrl filename, and styleUrls filenames; make sure to include it as a resolved path.
+ *   2. Add metadata for identifying .scss as a dependency
+ *   3. Capture the template & css contents itself too?
+ *   4. Inspect component template to identify slots.
+ *   5. Capture SCSS vars and transform them to CSS vars?
+ **/
+
 export const collectComponentMetadata = (
   node: ts.ClassDeclaration,
   filepath: string

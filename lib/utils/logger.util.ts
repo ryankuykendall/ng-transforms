@@ -28,3 +28,5 @@ export const error = (label: string, ...details: string[]) => {
 export const newline = (count: number = 1) => {
   console.log('\n'.repeat(count));
 };
+
+// TODO (ryan): Add a logging method for handling messages that include ts.Node arguments.

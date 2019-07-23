@@ -15,6 +15,13 @@ import * as oleUtil from './lib/utils/object-literal-expression.util';
 import { Property as cdProperty } from './lib/declaration-metadata/component-decorator.properties';
 
 import * as dm from './lib/declaration-metadata/index.metadata';
+import {
+  IComponentDecoratorRef,
+  IComponentInlineModel,
+  IComponentInlineBuild,
+  IComponentInlineTransformBundle,
+} from './lib/transforms/components/inline-resources.interface';
+import * as inlineResourceTransform from './lib/transforms/components/inline-resources.transform';
 
 // TODO (ryan): Wrap-up chalk with console.log && console.error into a separate module
 //   (and likely a singleton) to control output velocity levels across command runs.
@@ -63,7 +70,7 @@ enum NgAstSelector {
 interface IFileAST {
   filepath: string;
   source: string;
-  ast: ts.Node;
+  ast: ts.SourceFile; // TODO (ryan): Rename this to sourceFile!!!
   srcDirectory?: string;
   buildDirectory?: string;
   relativeDirname?: string;
@@ -443,14 +450,6 @@ program
     });
   });
 
-interface IComponentDecoratorRef {
-  // File system
-  filepath: string;
-  dirname: string;
-  // AST Nodes
-  decorator: ts.Decorator;
-}
-
 const generateComponentDecoratorRefs = (
   sourceFileMatches: IFileASTQueryMatch[]
 ): IComponentDecoratorRef[] => {
@@ -459,6 +458,7 @@ const generateComponentDecoratorRefs = (
       collection: IComponentDecoratorRef[],
       fileMatch: IFileASTQueryMatch
     ): IComponentDecoratorRef[] => {
+      let sourceFile = fileMatch.ast;
       const refs: IComponentDecoratorRef[] = fileMatch.matches.map(
         (decorator: ts.Node): IComponentDecoratorRef => {
           const { filepath } = fileMatch;
@@ -466,6 +466,7 @@ const generateComponentDecoratorRefs = (
           return {
             filepath,
             dirname,
+            sourceFile,
             decorator: decorator as ts.Decorator,
           };
         }
@@ -476,34 +477,12 @@ const generateComponentDecoratorRefs = (
   );
 };
 
-interface IComponentInlineModel extends IComponentDecoratorRef {
-  // File system
-  relativeDirname: string;
-
-  // AST Nodes
-  callExpression: ts.CallExpression;
-  objectLiteralExpression: ts.ObjectLiteralExpression;
-
-  // Assets
-  template?: string;
-  hasTemplateUrl: boolean; // Present to determine if we need to prune this property after transform.
-  templateUrl?: string;
-  styles?: string[];
-  hasStyleUrls: boolean; // Present to determine if we need to prune this property after transform.
-  styleUrls?: string[]; // Need this to preserve order as well as the needing the map!
-  styleUrlsMap?: Map<string, string>;
-}
-
-interface IComponentInlineBuild extends IComponentInlineModel {
-  buildDirname?: string;
-}
-
 const CSS_FILE_EXTENSION = 'css';
 const SCSS_FILE_EXTENSION = 'scss';
 const SCSS_REPLACE_REGEXP = /\.scss$/;
 
 const generateComponentInlineModel = (
-  { filepath, dirname, decorator }: IComponentDecoratorRef,
+  { filepath, dirname, sourceFile, decorator }: IComponentDecoratorRef,
   srcDirectory: string | undefined
 ): IComponentInlineModel => {
   // File system and assets
@@ -549,6 +528,7 @@ const generateComponentInlineModel = (
     relativeDirname,
 
     // AST Nodes
+    sourceFile,
     decorator,
     callExpression,
     objectLiteralExpression,
@@ -662,60 +642,6 @@ const loadComponentStyleUrlsContent = (build: IComponentInlineBuild): IComponent
   return build;
 };
 
-const inlineComponentAssetContentsFromModelTransform = (model: IComponentInlineModel) => {
-  const updatedOLEProperties: ts.ObjectLiteralElementLike[] = [];
-  model.objectLiteralExpression.properties.forEach((element: ts.ObjectLiteralElementLike) => {
-    if (element.name) {
-      const propertyName = element.name.getText();
-      switch (propertyName) {
-        case cdProperty.Template:
-          // Template already existed in decorator, so just add it to the new OLE.
-          if (!model.hasTemplateUrl) {
-            updatedOLEProperties.push(element);
-          }
-          break;
-        case cdProperty.Styles:
-          // Styles already existed in decorator, so just add them to the new OLE.
-          if (!model.hasStyleUrls) {
-            updatedOLEProperties.push(element);
-          }
-          break;
-        case cdProperty.TemplateUrl:
-          if (model.hasTemplateUrl && model.template) {
-            const templateProperty = ts.createPropertyAssignment(
-              ts.createStringLiteral(cdProperty.Template),
-              ts.createNoSubstitutionTemplateLiteral(model.template)
-            );
-            updatedOLEProperties.push(templateProperty);
-          } else {
-            updatedOLEProperties.push(element);
-          }
-          break;
-        case cdProperty.StyleUrls:
-          if (model.hasStyleUrls && model.styles) {
-            const styleItems = model.styles.map(
-              (style: string): ts.NoSubstitutionTemplateLiteral => {
-                return ts.createNoSubstitutionTemplateLiteral(style);
-              }
-            );
-            const stylesProperty = ts.createPropertyAssignment(
-              ts.createIdentifier(cdProperty.Styles),
-              ts.createArrayLiteral(styleItems, false)
-            );
-            updatedOLEProperties.push(stylesProperty);
-          }
-          break;
-        default:
-          updatedOLEProperties.push(element);
-          break;
-      }
-    }
-  });
-
-  const updatedOLE: ts.ObjectLiteralExpression = ts.createObjectLiteral(updatedOLEProperties);
-  model.callExpression.expression = updatedOLE;
-};
-
 const resolveDirectoryPathFragment = (fragment: string | undefined): string | undefined => {
   return fragment ? path.resolve(fragment) : undefined;
 };
@@ -744,6 +670,7 @@ const logModelStateToConsole = (models: IComponentInlineModel[]) => {
           // NOTE (ryan): Another way to do this would be to filter out
           //   entries that were instancesof ts.Node
           decorator: undefined,
+          sourceFile: model.sourceFile.fileName,
           callExpression: undefined,
           objectLiteralExpression: undefined,
           styleUrlsMap: model.styleUrlsMap ? Array.from(model.styleUrlsMap.entries()) : undefined,
@@ -769,7 +696,7 @@ program
      *   src directory!
      */
 
-    const rewriteSourceFiles: boolean = cmd.opts()['output'] || false;
+    const rewriteSourceFiles: boolean = cmd.opts()['rewrite'] || false;
     const pretty: boolean = cmd.opts()['pretty'] || false;
     const srcDirname = resolveDirectoryPathFragment(cmd.opts()['src']);
     const buildDirname = resolveDirectoryPathFragment(cmd.opts()['build']);
@@ -804,26 +731,92 @@ program
     logger.info('AFTER loading asset URLs');
     logModelStateToConsole(models);
 
-    const updatedSourceFiles: ts.SourceFile[] = models
-      .map(
-        (model: IComponentInlineModel): ts.SourceFile | undefined => {
-          inlineComponentAssetContentsFromModelTransform(model);
-          return ascendToSourceFileFromNode(model.decorator);
+    // FINISH UP THIS CLEANUP!!!
+
+    // TODO (ryan): Bundle models by SourceFile since there could be more
+    //   than one Component per SourceFile.
+    // const updatedSourceFiles: ts.SourceFile[] = models
+    //   .map(
+    //     (model: IComponentInlineModel): ts.SourceFile | undefined => {
+    //       // Original way...
+    //       // inlineComponentAssetContentsFromModelTransform(model);
+    //       // New way...
+    //       // inlineResourceTransform.invoke(bundle);
+    //       return ascendToSourceFileFromNode(model.decorator);
+    //     }
+    //   )
+    //   .filter(
+    //     (node: ts.SourceFile | undefined) => node && ts.isSourceFile(node)
+    //   ) as ts.SourceFile[];
+
+    // NOTE + CLEANUP (ryan): This is too far downstream to be doing this. We should be
+    //   caching the ts.SourceFile in the Model object at the time of creation when we
+    //   have the root AST object!
+
+    /**
+     * Old way...
+     */
+    // const uniqueSourceFiles: ts.SourceFile[] = Array.from(
+    //   new Set<ts.SourceFile>(updatedSourceFiles)
+    // ) as ts.SourceFile[];
+
+    // uniqueSourceFiles.forEach((file: ts.SourceFile) => {
+    //   const result: string = generateTypescriptFromSourceFileAST(file, file.fileName, pretty);
+    //   logger.info('Transform results');
+    //   console.log(result);
+    // });
+    const transformBundlesMap: Map<ts.SourceFile, IComponentInlineModel[]> = models.reduce(
+      (distribution: Map<ts.SourceFile, IComponentInlineModel[]>, model: IComponentInlineModel) => {
+        const { sourceFile } = model;
+        if (!distribution.has(sourceFile)) {
+          distribution.set(sourceFile, []);
         }
-      )
-      .filter(
-        (node: ts.SourceFile | undefined) => node && ts.isSourceFile(node)
-      ) as ts.SourceFile[];
 
-    const uniqueSourceFiles: ts.SourceFile[] = Array.from(
-      new Set<ts.SourceFile>(updatedSourceFiles)
-    ) as ts.SourceFile[];
+        const modelCollection = distribution.get(sourceFile);
+        if (modelCollection) {
+          modelCollection.push(model);
+        }
+        return distribution;
+      },
+      new Map<ts.SourceFile, IComponentInlineModel[]>()
+    );
 
-    uniqueSourceFiles.forEach((file: ts.SourceFile) => {
-      const result: string = generateTypescriptFromSourceFileAST(file, file.fileName, pretty);
-      logger.info('Transform results');
-      console.log(result);
-    });
+    const transformBundles: IComponentInlineTransformBundle[] = Array.from(
+      transformBundlesMap.entries()
+    ).map(
+      ([sourceFile, models]): IComponentInlineTransformBundle => {
+        return {
+          sourceFile,
+          models,
+        };
+      }
+    );
+
+    const transformBundlesComplete: IComponentInlineTransformBundle[] = transformBundles.map(
+      (bundle: IComponentInlineTransformBundle) => {
+        const [firstModel] = bundle.models;
+        const result: ts.TransformationResult<ts.SourceFile> = inlineResourceTransform.invoke(
+          bundle
+        );
+        bundle.transformOutput = generateTypescriptFromSourceFileAST(
+          result.transformed[0],
+          firstModel.filepath,
+          pretty
+        );
+        logger.success(`Transform results for`, bundle.models[0].filepath);
+        console.log(bundle.transformOutput);
+        return bundle;
+      }
+    );
+
+    if (rewriteSourceFiles) {
+      transformBundlesComplete.forEach((bundle: IComponentInlineTransformBundle) => {
+        const [firstModel] = bundle.models;
+        const { filepath } = firstModel;
+        logger.success('Overwriting file with transform result', filepath);
+        fs.writeFileSync(filepath, bundle.transformOutput);
+      });
+    }
 
     /**
      * TODO (ryan): Need to significantly rethink this. The AST node in each of these

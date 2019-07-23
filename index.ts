@@ -721,50 +721,16 @@ program
       }
     );
 
-    logger.info('BEFORE loading asset URLs');
-    logModelStateToConsole(models);
+    // logger.info('BEFORE loading asset URLs');
+    // logModelStateToConsole(models);
 
     // Update models with the contents of templateUrl and styleUrls
     models = loadAllComponentTemplateUrlContents(models, buildDirname);
     models = loadAllComponentStyleUrlsContent(models, buildDirname);
 
-    logger.info('AFTER loading asset URLs');
-    logModelStateToConsole(models);
+    // logger.info('AFTER loading asset URLs');
+    // logModelStateToConsole(models);
 
-    // FINISH UP THIS CLEANUP!!!
-
-    // TODO (ryan): Bundle models by SourceFile since there could be more
-    //   than one Component per SourceFile.
-    // const updatedSourceFiles: ts.SourceFile[] = models
-    //   .map(
-    //     (model: IComponentInlineModel): ts.SourceFile | undefined => {
-    //       // Original way...
-    //       // inlineComponentAssetContentsFromModelTransform(model);
-    //       // New way...
-    //       // inlineResourceTransform.invoke(bundle);
-    //       return ascendToSourceFileFromNode(model.decorator);
-    //     }
-    //   )
-    //   .filter(
-    //     (node: ts.SourceFile | undefined) => node && ts.isSourceFile(node)
-    //   ) as ts.SourceFile[];
-
-    // NOTE + CLEANUP (ryan): This is too far downstream to be doing this. We should be
-    //   caching the ts.SourceFile in the Model object at the time of creation when we
-    //   have the root AST object!
-
-    /**
-     * Old way...
-     */
-    // const uniqueSourceFiles: ts.SourceFile[] = Array.from(
-    //   new Set<ts.SourceFile>(updatedSourceFiles)
-    // ) as ts.SourceFile[];
-
-    // uniqueSourceFiles.forEach((file: ts.SourceFile) => {
-    //   const result: string = generateTypescriptFromSourceFileAST(file, file.fileName, pretty);
-    //   logger.info('Transform results');
-    //   console.log(result);
-    // });
     const transformBundlesMap: Map<ts.SourceFile, IComponentInlineModel[]> = models.reduce(
       (distribution: Map<ts.SourceFile, IComponentInlineModel[]>, model: IComponentInlineModel) => {
         const { sourceFile } = model;
@@ -792,6 +758,9 @@ program
       }
     );
 
+    // TODO (ryan): Filter out bundles (and models) for which all models show inlined template
+    //   and styles. We should not be transforming components that do not require rewriting.
+
     const transformBundlesComplete: IComponentInlineTransformBundle[] = transformBundles.map(
       (bundle: IComponentInlineTransformBundle) => {
         const [firstModel] = bundle.models;
@@ -817,97 +786,6 @@ program
         fs.writeFileSync(filepath, bundle.transformOutput);
       });
     }
-
-    /**
-     * TODO (ryan): Need to significantly rethink this. The AST node in each of these
-     *   QueryMatches is at the SourceFile root rather than at the level of the
-     *   ClassDeclaration with a Component decorator.
-     *
-     *   We should be building up a collection of those ClassDeclaration nodes and
-     *   running our transform over those nodes directly. So order of operations
-     *   should be:
-     *
-     *     DONE 1. Iterate through each SourceFile query match
-     *     DONE 2. Query for all of the ClassDeclarations with Component Decorators
-     *     DONE 2.5 Filter out all of the test files.
-     *     DONE 3. Build up results of step #2 into a single collection
-     *     DONE 4. Iterate through component decorator collection to collect templateUrls
-     *     DONE 5. Iterate through component decorator collection to collect styleUrls
-     *     DONE 6. Load contents of templateUrl and styleUrls
-     *     DONE 7. Pass templateUrl and styleUrl filenames and contents to transform
-     *     DONE 8. Inline template and styles contents in transform
-     *     DONE 8.5 For each model, ascend ancestry to SourceFile ts.node
-     *     DONE 8.6 Generate unique collection of SourceFile nodes (since there can be many components in a SourceFile)
-     *     DONE 9. Output nice clean TypeScript from SourceFile nodes
-     *     DONE 9.5 Refactor generateTypescriptFromTransformationResult per TODOs above
-     *     DONE 9.6 Refactor commands using generateTypescriptFromTransformationResult to conform
-     *         to new interface
-     *     10. Save updated files to disk
-     *     DONE 11. Implement prettier flag (to control degree to which output TS is modified)
-     * */
-
-    // TODO (ryan): Finish this!
-    //   1. Wrap template contents in NoSubstitutionTemplateLiteral
-    //   2. Write styles content into NoSubstitutionTemplateLiterals
-
-    // let components = componentDecoratorImportMatches;
-    // if (sourceDirectoryRoot && buildDirectoryRoot) {
-    //   components = componentDecoratorImportMatches.map((queryMatch: IFileASTQueryMatch) => {
-    //     // TODO (ryan): Resolve these correctly
-    //     const srcDirectory = path.resolve(sourceDirectoryRoot);
-    //     const buildDirectory = path.resolve(buildDirectoryRoot);
-    //     const relativeDirname = path.dirname(path.relative(srcDirectory, queryMatch.filepath));
-    //     const componentDecorator = tsquery(queryMatch.ast, 'ClassDeclaration Decorators[]');
-
-    //     return {
-    //       ...queryMatch,
-    //       srcDirectory,
-    //       buildDirectory,
-    //       relativeDirname,
-    //     };
-    //   });
-    // }
-
-    // console.log(
-    //   'Query Matches with directories',
-    //   JSON.stringify(
-    //     components.map(component => {
-    //       return {
-    //         ...component,
-    //         // Prune the AST to drop circular structure.
-    //         ast: null,
-    //         matches: [],
-    //         src: '',
-    //       };
-    //     }),
-    //     null,
-    //     2
-    //   )
-    // );
-
-    // const transformationResults = components.map(
-    //   ({ filepath, source, ast }): IFileTransformationResult => {
-    //     const transformation = ts.transform(ast, [
-    //       ct.inlineHTMLTemplateFromFileInComponentDecoratorTransformer(filepath),
-    //       cdt.inlineCSSFromFileTransformer(filepath),
-    //     ]) as ts.TransformationResult<ts.SourceFile>;
-
-    //     return {
-    //       filepath,
-    //       source,
-    //       ast,
-    //       transformation,
-    //     };
-    //   }
-    // );
-
-    // if (rewriteSourceFiles) {
-    //   console.log(chalk.green.bold('Rewriting source files'));
-    //   generateTypescriptFromTransformationResult(transformationResults);
-    // } else {
-    //   console.log(chalk.green.bold('Outputting source files to stdout'));
-    //   generateTypescriptFromTransformationResult(transformationResults);
-    // }
   });
 
 program

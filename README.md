@@ -45,34 +45,40 @@ stubs/ Contains base Angular files used for generating code.
 
 In the specified directory, get all arrow functions defined in a variable statement that are at the root of a source file. Then ascend the ancestry to the VariableStatement and display the results.
 
+### Inline templates, styles, and generated styles
+
+```
+$ ./dist/index.js ng-inline-resources ~/ng-components/components/src -R --src ~/ng-components/components/src --build ~/ng-components/components/bazel-out -p
+```
+
 ### Collecting Angular Directive, Component, and Module interface metadata by directory
 
 ```
-npm run cli ng-metadata-collect <directory/file>
+$ npm run cli ng-metadata-collect <directory/file>
 ```
 
 Outputing the JSON metadata output to a file.
 
 ```
-npm run cli ng-metadata-collect <directory/file> -o <output-file-name>
+$ npm run cli ng-metadata-collect <directory/file> -o <output-file-name>
 ```
 
 ### Generating a key for an Angular project metadata file (useful for understanding the interfaces that can be queried for using JSON Query syntax in ng-metadata-query command)
 
 ```
-npm run cli ng-metadata-key <metadata-file>
+$ npm run cli ng-metadata-key <metadata-file>
 ```
 
 ### Querying a Angular project metadata file with [json-query](https://github.com/mmckegg/json-query) (assumes output file from collect-ng-metadata)
 
 ```
-npm run cli ng-metadata-query <query> <metadata-file>
+$ npm run cli ng-metadata-query <query> <metadata-file>
 ```
 
 Query for Directive filepath, identifier, and selector:
 
 ```
-npm run cli ng-metadata-query 'directives:select(filepath,identifier,selector)' <metadata-file>
+$ npm run cli ng-metadata-query 'directives:select(filepath,identifier,selector)' <metadata-file>
 ```
 
 More examples coming soon!

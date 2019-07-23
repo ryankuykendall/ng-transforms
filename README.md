@@ -47,6 +47,20 @@ In the specified directory, get all arrow functions defined in a variable statem
 
 ### Inline templates, styles, and generated styles
 
+For testing purposes, assumes that the developer has generated CSS from SCSS files:
+
+```
+sass mocks:bazel-out/mocks
+```
+
+_On project mocks directory:_
+
+```
+$ ./dist/index.js ng-inline-resources mocks/components -R --src . --build ./bazel-out -p
+```
+
+_On locally cloned Angular/Material src:_
+
 ```
 $ ./dist/index.js ng-inline-resources ~/ng-components/components/src -R --src ~/ng-components/components/src --build ~/ng-components/components/bazel-out -p
 ```

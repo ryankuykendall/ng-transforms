@@ -220,6 +220,16 @@ type TrieNode = Map<string, Map<string, any>>;
 const generateTrieFromKeyData = (key: IOutputNode): TrieNode => {
   const trie: TrieNode = new Map<string, TrieNode>();
 
+  /**
+   * QUESTION: Would putting numbers in the bracket improve the usefulness
+   *   of the Key?
+   * 
+   *   components[]
+         bootstrappingTemplate
+         constructorDef
+           injectedProperties[]
+           parameters[]
+   */
   const generateNodeName = (node: IOutputNode): string =>
     `${node.label}${node.collection ? '[]' : ''}`;
 
@@ -687,6 +697,14 @@ program
   .option('-R --rewrite', 'Rewrite file sources from transform')
   .option('-s --src <source>', 'Source directory root')
   .option('-b --build <build>', 'Build directory root')
+  .option(
+    '-c --css-build <css-build-dir>',
+    'Build directory root for CSS files transpiled from SCSS'
+  )
+  .option(
+    '-t --template-build <template-build-dir>',
+    'Build directory root for component template HTML files'
+  )
   .option('-p --pretty', 'Output files through Prettier')
   .action((dir: string, cmd: program.Command) => {
     /**
@@ -700,7 +718,49 @@ program
     const pretty: boolean = cmd.opts()['pretty'] || false;
     const srcDirname = resolveDirectoryPathFragment(cmd.opts()['src']);
     const buildDirname = resolveDirectoryPathFragment(cmd.opts()['build']);
-    logger.info('Directories in args', srcDirname || '[unknown]', buildDirname || '[unknown]');
+    const cssBuildDirname = resolveDirectoryPathFragment(cmd.opts()['cssBuild']);
+    const templateBuildDirname = resolveDirectoryPathFragment(cmd.opts()['templateBuild']);
+
+    console.log('ng-inline-resources options', cmd.opts());
+
+    logger.info(
+      'Directories in args',
+      'srcDirname',
+      srcDirname || '[unknown]',
+      'buildDirname',
+      buildDirname || '[unknown]',
+      'cssBuildDirname',
+      cssBuildDirname || '[unknown]',
+      'templateBuildDirname',
+      templateBuildDirname || '[unknown]'
+    );
+
+    // TODO (ryan): When moving commands to separate modules during cleanup/refactor, develop
+    //   a reusable flags validation pattern to address the following combinations.
+    if (!buildDirname && !cssBuildDirname && !templateBuildDirname) {
+      logger.error(
+        'Build directory flags are required',
+        '\n\tPlease provide either the --build flag or the --css-build and --template-build flag combination.',
+        '\n\tExiting'
+      );
+      return 0;
+    }
+
+    if ((buildDirname && cssBuildDirname) || (buildDirname && templateBuildDirname)) {
+      logger.error(
+        '--build flag cannot be used with --css-build or --template-build flags',
+        '\n\tExiting'
+      );
+      return 0;
+    }
+
+    if ((cssBuildDirname && !templateBuildDirname) || (!cssBuildDirname && templateBuildDirname)) {
+      logger.error(
+        '--css-build flag and --template-build flag must be used together',
+        '\n\tExiting'
+      );
+      return 0;
+    }
 
     const tsFiles = getTypescriptFileASTsFromDirectory(dir);
     const sourceFileMatches = findFilesWithASTMatchingSelector(
@@ -725,8 +785,13 @@ program
     // logModelStateToConsole(models);
 
     // Update models with the contents of templateUrl and styleUrls
-    models = loadAllComponentTemplateUrlContents(models, buildDirname);
-    models = loadAllComponentStyleUrlsContent(models, buildDirname);
+    if (buildDirname) {
+      models = loadAllComponentTemplateUrlContents(models, buildDirname);
+      models = loadAllComponentStyleUrlsContent(models, buildDirname);
+    } else {
+      models = loadAllComponentTemplateUrlContents(models, templateBuildDirname);
+      models = loadAllComponentStyleUrlsContent(models, cssBuildDirname);
+    }
 
     // logger.info('AFTER loading asset URLs');
     // logModelStateToConsole(models);

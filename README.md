@@ -65,6 +65,15 @@ _On locally cloned Angular/Material src:_
 $ ./dist/index.js ng-inline-resources ~/ng-components/components/src -R --src ~/ng-components/components/src --build ~/ng-components/components/bazel-out -p
 ```
 
+_In a build environment where SCSS and template files are outputted into separate build directory roots_
+
+```
+./dist/index.js ng-inline-resources ~/ng-components/components/src -R -p \
+   --src ~/ng-components/components/src \
+   --template-build ~/ng-components/components/bazel-out \
+   --css-build ~/ng-components/components/bazel-bin
+```
+
 ### Collecting Angular Directive, Component, and Module interface metadata by directory
 
 ```

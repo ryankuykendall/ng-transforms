@@ -225,7 +225,7 @@ const generateTrieFromKeyData = (key: IOutputNode): TrieNode => {
    *   of the Key?
    * 
    *   components[]
-         bootstrappingTemplate
+         ngTemplate
          constructorDef
            injectedProperties[]
            parameters[]
@@ -898,7 +898,7 @@ interface IObject {
 const jsonQueryLocals = {
   // Usage:
   //   directives:select(filepath,identifier,selector)
-  //   components:select(filepath,identifier,selector,bootstrappingTemplate)
+  //   components:select(filepath,identifier,selector,ngTemplate)
 
   select: function(input: Array<any> | undefined) {
     if (Array.isArray(input)) {

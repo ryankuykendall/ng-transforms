@@ -38,9 +38,9 @@ export const collectDirectiveMetadata = (
   return {
     ...(directiveDecoratorMetadata as IDirectiveClassDecoratorMetadata),
     ...classMetadata,
-    // NOTE (ryan): bootstrappingTemplate to be created in post processing
+    // NOTE (ryan): ngTemplate to be created in post processing
     //   step.
-    bootstrappingTemplate: '',
+    ngTemplate: '',
   };
 };
 

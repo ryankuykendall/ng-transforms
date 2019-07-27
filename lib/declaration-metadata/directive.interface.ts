@@ -11,5 +11,5 @@ export interface IDirectiveClassDecoratorMetadata {
 }
 
 export interface IDirectiveMetadata extends IClassMetadata, IDirectiveClassDecoratorMetadata {
-  bootstrappingTemplate: string;
+  ngTemplate: string;
 }

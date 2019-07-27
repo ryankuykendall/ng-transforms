@@ -9,19 +9,19 @@ const successTheme = chalk.bgGreen.black;
 const warnTheme = chalk.bgYellow.black.bold;
 const errorTheme = chalk.bgRed.black.bold;
 
-export const info = (label: string, ...details: string[]) => {
+export const info = (label: string, ...details: any[]) => {
   console.info(infoTheme(label), ...details);
 };
 
-export const success = (label: string, ...details: string[]) => {
+export const success = (label: string, ...details: any[]) => {
   console.log(CHECK, successTheme(label), ...details);
 };
 
-export const warn = (label: string, ...details: string[]) => {
+export const warn = (label: string, ...details: any[]) => {
   console.warn(HMMM, warnTheme(label), ...details);
 };
 
-export const error = (label: string, ...details: string[]) => {
+export const error = (label: string, ...details: any[]) => {
   console.error(BOMB, errorTheme(label), ...details);
 };
 

@@ -49,7 +49,7 @@ export interface IOutputMemberMetadata extends IHasIdentifier, IInGroup {
 
 export interface IComponentMetadata extends IClassMetadata {
   // TODO (ryan): Flesh this out
-  bootstrappingTemplate: string;
+  ngTemplate: string;
   constructorParameterMetadata?: IConstructorParameterMetadata;
   inputMembers: IInputMemberMetadata[];
   hostBindingMembers: IHostBindingMemberMetadata[];

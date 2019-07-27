@@ -53,7 +53,7 @@ export const collectComponentMetadata = (
 
   return {
     ...metadata,
-    bootstrappingTemplate: '',
+    ngTemplate: '',
     constructorParameterMetadata,
     inputMembers,
     hostBindingMembers,

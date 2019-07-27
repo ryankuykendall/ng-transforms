@@ -721,20 +721,6 @@ program
     const cssBuildDirname = resolveDirectoryPathFragment(cmd.opts()['cssBuild']);
     const templateBuildDirname = resolveDirectoryPathFragment(cmd.opts()['templateBuild']);
 
-    console.log('ng-inline-resources options', cmd.opts());
-
-    logger.info(
-      'Directories in args',
-      'srcDirname',
-      srcDirname || '[unknown]',
-      'buildDirname',
-      buildDirname || '[unknown]',
-      'cssBuildDirname',
-      cssBuildDirname || '[unknown]',
-      'templateBuildDirname',
-      templateBuildDirname || '[unknown]'
-    );
-
     // TODO (ryan): When moving commands to separate modules during cleanup/refactor, develop
     //   a reusable flags validation pattern to address the following combinations.
     if (!buildDirname && !cssBuildDirname && !templateBuildDirname) {

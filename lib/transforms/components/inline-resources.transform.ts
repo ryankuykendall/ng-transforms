@@ -4,9 +4,7 @@ import path from 'path';
 // CLEANUP (ryan): Create shorthand versions of these since they are
 //   namespaced: IRef, IModel, IBuild, ITransformBundle
 import {
-  IComponentDecoratorRef,
   IComponentInlineModel,
-  IComponentInlineBuild,
   IComponentInlineTransformBundle,
 } from './inline-resources.interface';
 

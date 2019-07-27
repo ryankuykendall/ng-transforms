@@ -1,5 +1,3 @@
-import ts from 'typescript';
-
 export interface IHasIdentifier {
   identifier: string;
 }

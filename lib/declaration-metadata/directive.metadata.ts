@@ -4,26 +4,11 @@ import { collectClassMetadata } from './class.metadata';
 import { IClassMetadata } from './class.interface';
 import { getDecoratorMap } from '../utils/decorator.util';
 import { DIRECTIVE } from '../utils/decorator-identifier.util';
-
-const enum DirectiveDecoratorPropertyName {
-  ExportAs = 'exportAs',
-  Host = 'host',
-  Inputs = 'inputs',
-  Outputs = 'outputs',
-  Providers = 'providers',
-  Queries = 'queries',
-  Selector = 'selector',
-}
-
-const enum ComponentDecoratorPropertyName {
-  Styles = 'styles',
-  StyleUrls = 'styleUrls',
-  Template = 'template',
-  TemplateUrl = 'templateUrl',
-}
+import { Property as DirectiveDecoratorProperty } from './directive.decorator-property';
+import { Property as ComponentDecoratorProperty } from './component.decorator-property';
 
 // Use the superset to identify these
-export type ComponentPropertyName = DirectiveDecoratorPropertyName | ComponentDecoratorPropertyName;
+export type ComponentPropertyName = DirectiveDecoratorProperty | ComponentDecoratorProperty;
 
 export const collectDirectiveMetadata = (
   node: ts.ClassDeclaration,
@@ -65,31 +50,31 @@ export const collectDirectiveDecoratorMetadata = (
       const decoratorProperties = getDirectiveDecoratorProperties(properties);
 
       // Selector
-      const selectorProp = decoratorProperties.get(DirectiveDecoratorPropertyName.Selector);
+      const selectorProp = decoratorProperties.get(DirectiveDecoratorProperty.Selector);
       selector = collectSelectorMetadata(selectorProp);
 
       // hostElementBindings
-      const hostElementBindingsProp = decoratorProperties.get(DirectiveDecoratorPropertyName.Host);
+      const hostElementBindingsProp = decoratorProperties.get(DirectiveDecoratorProperty.Host);
       hostElementBindings = collectHostElementBindingMetadata(hostElementBindingsProp);
 
       // inputs
-      const inputsProp = decoratorProperties.get(DirectiveDecoratorPropertyName.Inputs);
+      const inputsProp = decoratorProperties.get(DirectiveDecoratorProperty.Inputs);
       inputs = collectInputsMetadata(inputsProp);
 
       // outputs
-      const outputsProp = decoratorProperties.get(DirectiveDecoratorPropertyName.Outputs);
+      const outputsProp = decoratorProperties.get(DirectiveDecoratorProperty.Outputs);
       outputs = collectOutputsMetadata(outputsProp);
 
       // providers
-      const providersProp = decoratorProperties.get(DirectiveDecoratorPropertyName.Providers);
+      const providersProp = decoratorProperties.get(DirectiveDecoratorProperty.Providers);
       providers = collectProvidersMetadata(providersProp);
 
       // queries
-      const queriesProp = decoratorProperties.get(DirectiveDecoratorPropertyName.Queries);
+      const queriesProp = decoratorProperties.get(DirectiveDecoratorProperty.Queries);
       queries = collectQueriesMetadata(queriesProp);
 
       // exportAs
-      const exportAsProp = decoratorProperties.get(DirectiveDecoratorPropertyName.ExportAs);
+      const exportAsProp = decoratorProperties.get(DirectiveDecoratorProperty.ExportAs);
       exportAs = collectExportAsMetadata(exportAsProp);
     }
   }

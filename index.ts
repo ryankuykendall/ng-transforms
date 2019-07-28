@@ -913,16 +913,19 @@ interface IObject {
 }
 
 const jsonQueryLocals = {
+  // TODO (ryan): This needs to be further refined.
   // Usage:
-  //   directives:select(filepath,identifier,selector)
-  //   components:select(filepath,identifier,selector,ngTemplate)
-
+  //   directives:count()
+  //   components:count()
   count: function(input: Array<any> | undefined) {
     if (Array.isArray(input)) {
       return { count: input.length };
     }
   },
 
+  // Usage:
+  //   directives:select(filepath,identifier,selector)
+  //   components:select(filepath,identifier,selector,ngTemplate)
   select: function(input: Array<any> | undefined) {
     if (Array.isArray(input)) {
       var keys: string[] = [].slice.call(arguments, 1);

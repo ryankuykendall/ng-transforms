@@ -1,6 +1,8 @@
 import ts from 'typescript';
 import {
   IComponentMetadata,
+  IContentChildMemberMetadata,
+  IContentChildrenMemberMetadata,
   IInputMemberMetadata,
   IHostBindingMemberMetadata,
   IOutputMemberMetadata,
@@ -49,6 +51,9 @@ export const collectComponentMetadata = (
   const hostBindingMembers = collectHostBindingMemberMetadata(distribution);
   const hostListenerMembers = collectHostListenerMemberMetadata(distribution);
   const outputMembers = collectOutputMemberMetadata(distribution);
+  const contentChildMembers = collectContentChildMemberMetadata(distribution);
+  const contentChildrenMembers = collectContentChildrenMemberMetadata(distribution);
+
   // Continue building out component specific metadata
 
   return {
@@ -59,6 +64,8 @@ export const collectComponentMetadata = (
     hostBindingMembers,
     hostListenerMembers,
     outputMembers,
+    contentChildMembers,
+    contentChildrenMembers,
   };
 };
 
@@ -211,5 +218,45 @@ const collectOutputMemberMetadata = (distribution: IMember[]): IOutputMemberMeta
         in: member.in,
         bindingPropertyName,
       } as IOutputMemberMetadata;
+    });
+};
+
+const collectContentChildMemberMetadata = (
+  distribution: IMember[]
+): IContentChildMemberMetadata[] => {
+  return distribution
+    .filter((member: IMember) => member.decorators.has(decIdUtil.CONTENT_CHILD))
+    .map((member: IMember) => {
+      const { identifier } = member;
+      const decorator = member.decorators.get(decIdUtil.CONTENT_CHILD);
+      if (decorator) {
+        // Get decorator metadata here.
+        // Like this...
+        //   bindingPropertyName = getBindingPropertyName(decorator);
+      }
+      return {
+        identifier,
+        in: member.in,
+      } as IContentChildMemberMetadata;
+    });
+};
+
+const collectContentChildrenMemberMetadata = (
+  distribution: IMember[]
+): IContentChildMemberMetadata[] => {
+  return distribution
+    .filter((member: IMember) => member.decorators.has(decIdUtil.CONTENT_CHILDREN))
+    .map((member: IMember) => {
+      const { identifier } = member;
+      const decorator = member.decorators.get(decIdUtil.CONTENT_CHILDREN);
+      if (decorator) {
+        // Get decorator metadata here.
+        // Like this...
+        //   bindingPropertyName = getBindingPropertyName(decorator);
+      }
+      return {
+        identifier,
+        in: member.in,
+      } as IContentChildMemberMetadata;
     });
 };

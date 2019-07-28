@@ -47,6 +47,16 @@ export interface IOutputMemberMetadata extends IHasIdentifier, IInGroup {
   bindingPropertyName?: string;
 }
 
+export interface IContentChildMemberMetadata extends IHasIdentifier, IInGroup {
+  // TODO (ryan): Collect Metadata described here:
+  //   https://angular.io/api/core/ContentChild
+}
+
+export interface IContentChildrenMemberMetadata extends IHasIdentifier, IInGroup {
+  // TODO (ryan): Collect Metadata described here:
+  //   https://angular.io/api/core/ContentChildren
+}
+
 export interface IComponentMetadata extends IClassMetadata {
   // TODO (ryan): Flesh this out
   ngTemplate: string;
@@ -58,6 +68,6 @@ export interface IComponentMetadata extends IClassMetadata {
   // TO consider:
   // viewChildMembers
   // viewChildrenMembers
-  // contentChildMembers
-  // contentChildrenMembers
+  contentChildMembers: IContentChildMemberMetadata[];
+  contentChildrenMembers: IContentChildrenMemberMetadata[];
 }

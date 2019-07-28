@@ -215,33 +215,51 @@ const generateOutputNodeStub = (): IOutputNode => {
   };
 };
 
-type TrieNode = Map<string, Map<string, any>>;
+const DEFAULT_KEY_INDENT: number = 2;
+const TRIE_NODE_COUNT_PLACEHOLDER: string = 'COUNT_PLACEHOLDER';
+interface TrieNodeProperties {
+  count: number;
+  children: TrieNode;
+}
+type TrieNode = Map<string, TrieNodeProperties>;
 
 const generateTrieFromKeyData = (key: IOutputNode): TrieNode => {
-  const trie: TrieNode = new Map<string, TrieNode>();
+  const trie: TrieNode = new Map<string, TrieNodeProperties>();
 
   /**
-   * QUESTION: Would putting numbers in the bracket improve the usefulness
-   *   of the Key?
-   * 
-   *   components[]
-         ngTemplate
-         constructorDef
-           injectedProperties[]
-           parameters[]
+   * TODO (ryan): Have the start of this, but it needs to be refined
+   *
+   *   components[20]
+   *     ngTemplate
+   *     constructorDef
+   *       injectedProperties[3]
+   *        parameters[2]
    */
-  const generateNodeName = (node: IOutputNode): string =>
-    `${node.label}${node.collection ? '[]' : ''}`;
+  const generateNodeName = (node: IOutputNode): string => {
+    const label = node.label || '$root';
+    const suffix: string | undefined = node.collection
+      ? `${chalk.cyanBright.bold('[')}${TRIE_NODE_COUNT_PLACEHOLDER}${chalk.cyanBright.bold(']')}`
+      : ` ${chalk.cyanBright('_')}${TRIE_NODE_COUNT_PLACEHOLDER}${chalk.cyanBright('_')}`;
+    if (suffix) {
+      return `${chalk.yellow(label)}${suffix}`;
+    }
+
+    return `${label}`;
+  };
 
   const visitNode = (node: IOutputNode, parent: TrieNode) => {
     const name = generateNodeName(node);
     if (!parent.has(name)) {
-      parent.set(name, new Map<string, TrieNode>());
+      parent.set(name, {
+        count: 0,
+        children: new Map<string, TrieNodeProperties>(),
+      });
     }
     const newSharedParent = parent.get(name);
     if (newSharedParent) {
+      newSharedParent.count += 1;
       node.children.forEach((child: IOutputNode) => {
-        visitNode(child, newSharedParent);
+        visitNode(child, newSharedParent.children);
       });
     }
   };
@@ -251,16 +269,26 @@ const generateTrieFromKeyData = (key: IOutputNode): TrieNode => {
   return trie;
 };
 
-const generateKeyFromTrie = (trie: TrieNode): string => {
+const generateKeyPresentationFromTrie = (
+  trie: TrieNode,
+  maxDepth: number = Infinity,
+  indent: number = DEFAULT_KEY_INDENT
+): string => {
   const lines: string[] = [];
   const visit = (node: TrieNode, depth = 0) => {
+    if (depth > maxDepth) return;
+
     Array.from(node.entries())
       .sort(([x], [y]) => {
         return x < y ? -1 : 1;
       })
       .forEach(([label, childTrie]) => {
-        lines.push(`${''.padStart(2 * depth, ' ')}${label || '$root'}`);
-        visit(childTrie, depth + 1);
+        let updatedLabel = label;
+        if (childTrie.count > 0) {
+          updatedLabel = label.replace(TRIE_NODE_COUNT_PLACEHOLDER, `${childTrie.count}`);
+        }
+        lines.push(`${''.padStart(indent * depth, ' ')}${updatedLabel}`);
+        visit(childTrie.children, depth + 1);
       });
   };
 
@@ -292,11 +320,14 @@ const generateKeyFromData = (data: Object | Array<any>): IOutputNode => {
   return key;
 };
 
-const generateKeyPresentationFromOutputNode = (key: IOutputNode): string => {
+const generateKeyPresentationFromOutputNode = (
+  key: IOutputNode,
+  indent: number = DEFAULT_KEY_INDENT
+): string => {
   const keyPresentation: string[] = [];
   const keyVisit = (node: IOutputNode) => {
     keyPresentation.push(
-      `${''.padStart(2 * node.depth, ' ')}${node.label}${node.collection ? '[]' : ''}`
+      `${''.padStart(indent * node.depth, ' ')}${node.label}${node.collection ? '[]' : ''}`
     );
     node.children.forEach((child: IOutputNode) => {
       keyVisit(child);
@@ -886,6 +917,12 @@ const jsonQueryLocals = {
   //   directives:select(filepath,identifier,selector)
   //   components:select(filepath,identifier,selector,ngTemplate)
 
+  count: function(input: Array<any> | undefined) {
+    if (Array.isArray(input)) {
+      return { count: input.length };
+    }
+  },
+
   select: function(input: Array<any> | undefined) {
     if (Array.isArray(input)) {
       var keys: string[] = [].slice.call(arguments, 1);
@@ -947,11 +984,17 @@ program
 program
   .command('ng-metadata-key <filepath>')
   .option('-o --output <output>', 'Output file name for metadata query results file')
+  .option('-d --depth <depth>', 'Limit key output to specified depth')
+  .option('-i --indent <indent>', 'Indentation level')
   .description(
     'Generates an abbreviated interface key to facility the use of json-query syntax in ng-metadata-query command.'
   )
   .action((filepath: string, cmd: program.Command) => {
     const outputFile = cmd.opts()['output'] || null;
+    const maxDepth: number = cmd.opts()['depth'] ? parseInt(cmd.opts()['depth'], 10) : Infinity;
+    const indentLevel: number = cmd.opts()['indent']
+      ? parseInt(cmd.opts()['indent'], 10)
+      : DEFAULT_KEY_INDENT;
 
     if (fs.existsSync(filepath)) {
       const raw = fs.readFileSync(filepath, fileUtil.UTF8);
@@ -965,7 +1008,7 @@ program
       // console.log(keyPresentation);
 
       const trie = generateTrieFromKeyData(key);
-      const triePresentation = generateKeyFromTrie(trie);
+      const triePresentation = generateKeyPresentationFromTrie(trie, maxDepth, indentLevel);
 
       if (outputFile) {
         fs.writeFileSync(outputFile, triePresentation);

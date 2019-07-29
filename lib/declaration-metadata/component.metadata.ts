@@ -11,6 +11,8 @@ import {
   IConstructorParameterAttribute,
   ConstructorParameterRefType,
   IConstructorParameterRefMetadata,
+  ContentChildDecoratorOption,
+  ContentChildrenDecoratorOption,
 } from './component.interface';
 import {
   collectClassMetadata,
@@ -26,6 +28,15 @@ import {
 import { ClassMetadataGroup, IClassMetadata } from './class.interface';
 import { getDecoratorMap } from '../utils/decorator.util';
 import { IMethodParameter } from './method.interface';
+import { IType } from './type.interface';
+import {
+  hasKey,
+  getPropertyAsBoolean,
+  getPropertyAsGetFullText,
+  getPropertyAsExpression,
+} from '../utils/object-literal-expression.util';
+import { collectExpressionMetadata } from './expression.metadata';
+import { ExpressionMetadata } from './expression.interface';
 
 // TODO (ryan): Angular Components are a subclass of Directive Behavior.
 //  Should a good deal of this be moved to the directive.metadata file?
@@ -203,6 +214,9 @@ const getHostPropertyName = (decorator: ts.Decorator): string | undefined => {
 };
 
 // This is identical to collectInputMemberMetadata...simplify!
+// TODO (ryan): Refactor this to use a Generic + a function that captures
+//   the arguments to the ts.CallExpression:
+//   https://www.typescriptlang.org/docs/handbook/generics.html
 const collectOutputMemberMetadata = (distribution: IMember[]): IOutputMemberMetadata[] => {
   return distribution
     .filter((member: IMember) => member.decorators.has(decIdUtil.OUTPUT))
@@ -229,34 +243,90 @@ const collectContentChildMemberMetadata = (
     .map((member: IMember) => {
       const { identifier } = member;
       const decorator = member.decorators.get(decIdUtil.CONTENT_CHILD);
+      let selector!: ExpressionMetadata;
+      let read;
+      let isStatic!: boolean | undefined;
       if (decorator) {
-        // Get decorator metadata here.
-        // Like this...
-        //   bindingPropertyName = getBindingPropertyName(decorator);
+        const expression = decorator.expression as ts.CallExpression;
+        const [selectorArg, optionsArg] = expression.arguments;
+        selector = collectExpressionMetadata(selectorArg);
+
+        if (optionsArg && ts.isObjectLiteralExpression(optionsArg)) {
+          const optionsProperties = optionsArg.properties.map(
+            (prop: ts.ObjectLiteralElementLike) => prop
+          );
+
+          // TODO (ryan): Make sure to add this for @Inputs as well!
+          if (hasKey(optionsArg, ContentChildDecoratorOption.Static)) {
+            isStatic = getPropertyAsBoolean(optionsProperties, ContentChildDecoratorOption.Static);
+          }
+
+          if (hasKey(optionsArg, ContentChildDecoratorOption.Read)) {
+            const readProp = getPropertyAsExpression(
+              optionsProperties,
+              ContentChildDecoratorOption.Read
+            );
+            if (readProp) {
+              read = collectExpressionMetadata(readProp);
+            }
+          }
+        }
       }
       return {
         identifier,
         in: member.in,
+        selector,
+        read,
+        isStatic,
       } as IContentChildMemberMetadata;
     });
 };
 
 const collectContentChildrenMemberMetadata = (
   distribution: IMember[]
-): IContentChildMemberMetadata[] => {
+): IContentChildrenMemberMetadata[] => {
   return distribution
     .filter((member: IMember) => member.decorators.has(decIdUtil.CONTENT_CHILDREN))
     .map((member: IMember) => {
       const { identifier } = member;
       const decorator = member.decorators.get(decIdUtil.CONTENT_CHILDREN);
+      let selector!: ExpressionMetadata;
+      let read;
+      let descendants!: boolean | undefined;
       if (decorator) {
-        // Get decorator metadata here.
-        // Like this...
-        //   bindingPropertyName = getBindingPropertyName(decorator);
+        const expression = decorator.expression as ts.CallExpression;
+        const [selectorArg, optionsArg] = expression.arguments;
+        selector = collectExpressionMetadata(selectorArg);
+
+        if (optionsArg && ts.isObjectLiteralExpression(optionsArg)) {
+          const optionsProperties = optionsArg.properties.map(
+            (prop: ts.ObjectLiteralElementLike) => prop
+          );
+
+          if (hasKey(optionsArg, ContentChildrenDecoratorOption.Descendants)) {
+            descendants = getPropertyAsBoolean(
+              optionsProperties,
+              ContentChildrenDecoratorOption.Descendants
+            );
+          }
+
+          if (hasKey(optionsArg, ContentChildrenDecoratorOption.Read)) {
+            const readProp = getPropertyAsExpression(
+              optionsProperties,
+              ContentChildrenDecoratorOption.Read
+            );
+            if (readProp) {
+              read = collectExpressionMetadata(readProp);
+            }
+          }
+        }
       }
       return {
         identifier,
         in: member.in,
-      } as IContentChildMemberMetadata;
+        selector,
+        descendants,
+        read,
+      } as IContentChildrenMemberMetadata;
     });
 };

@@ -1,5 +1,7 @@
 import { IClassMetadata, IInGroup } from './class.interface';
 import { IHasIdentifier } from './base.interface';
+import { IType } from './type.interface';
+import { ExpressionMetadata } from './expression.interface';
 
 // TODO (ryan): Angular Components are a superset of Directive Behavior.
 //  Should a good deal of this be moved to the directive.interface file?
@@ -47,14 +49,28 @@ export interface IOutputMemberMetadata extends IHasIdentifier, IInGroup {
   bindingPropertyName?: string;
 }
 
+export enum ContentChildDecoratorOption {
+  Read = 'read',
+  Static = 'static',
+}
+
 export interface IContentChildMemberMetadata extends IHasIdentifier, IInGroup {
-  // TODO (ryan): Collect Metadata described here:
-  //   https://angular.io/api/core/ContentChild
+  selector: ExpressionMetadata;
+  read?: ExpressionMetadata;
+  static?: boolean;
+}
+
+export enum ContentChildrenDecoratorOption {
+  Descendants = 'descendants',
+  Read = 'read',
 }
 
 export interface IContentChildrenMemberMetadata extends IHasIdentifier, IInGroup {
   // TODO (ryan): Collect Metadata described here:
   //   https://angular.io/api/core/ContentChildren
+  descendants?: boolean;
+  read?: ExpressionMetadata;
+  selector: ExpressionMetadata;
 }
 
 export interface IComponentMetadata extends IClassMetadata {

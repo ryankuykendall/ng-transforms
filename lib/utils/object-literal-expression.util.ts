@@ -40,6 +40,33 @@ export const getPropertyAsPropertyAssignment = (
   return __getProperty(props, key);
 };
 
+export const getPropertyAsGetFullText = (
+  props: ts.ObjectLiteralElementLike[],
+  key: string
+): string | undefined => {
+  const propAssignment = __getProperty(props, key);
+  if (propAssignment && ts.isPropertyAssignment(propAssignment)) {
+    return propAssignment.getFullText();
+  }
+
+  return;
+};
+
+export const getPropertyAsBoolean = (
+  props: ts.ObjectLiteralElementLike[],
+  key: string
+): boolean | undefined => {
+  const propAssignment = __getProperty(props, key);
+  if (propAssignment && ts.isPropertyAssignment(propAssignment)) {
+    const initializer = propAssignment.initializer;
+    const assignment: string = initializer.getText().trim();
+    if (assignment === 'true') return true;
+    if (assignment === 'false') return false;
+  }
+
+  return;
+};
+
 export const getPropertyAsString = (
   props: ts.ObjectLiteralElementLike[],
   key: string,
@@ -60,6 +87,7 @@ export const getPropertyAsString = (
   return null;
 };
 
+// TODO (ryan): This should return undefined if it cannot be found for consistency.
 export const getPropertyAsArrayLiteralExpression = (
   props: ts.ObjectLiteralElementLike[],
   key: string
@@ -78,4 +106,18 @@ export const getPropertyAsArrayLiteralExpression = (
   }
 
   return null;
+};
+
+export const getPropertyAsExpression = (
+  props: ts.ObjectLiteralElementLike[],
+  key: string
+): ts.Expression | undefined => {
+  let propAssignment = __getProperty(props, key);
+
+  if (propAssignment && ts.isPropertyAssignment(propAssignment)) {
+    propAssignment = propAssignment as ts.PropertyAssignment;
+    return propAssignment.initializer;
+  }
+
+  return;
 };

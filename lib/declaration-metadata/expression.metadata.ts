@@ -24,6 +24,8 @@ export const collectExpressionMetadata = (
       return getCallExpressionMetadata(expression as ts.CallExpression);
     case ts.SyntaxKind.FalseKeyword:
       return getFalseKeywordMetadata();
+    case ts.SyntaxKind.Identifier:
+      return getIdentifierMetadata(expression as ts.Identifier);
     case ts.SyntaxKind.NewExpression:
       return getNewExpressionMetadata(expression as ts.NewExpression);
     case ts.SyntaxKind.PropertyAccessExpression:
@@ -61,6 +63,12 @@ const getFalseKeywordMetadata = (): IType => {
   return {
     type: BasicType.Boolean,
     literal: false,
+  };
+};
+
+const getIdentifierMetadata = (identifier: ts.Identifier): IType => {
+  return {
+    type: identifier.getText().trim(),
   };
 };
 

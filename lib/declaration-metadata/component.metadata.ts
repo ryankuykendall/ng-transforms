@@ -13,13 +13,18 @@ import {
   IConstructorParameterRefMetadata,
   ContentChildDecoratorOption,
   ContentChildrenDecoratorOption,
+  IComponentClassDecoratorMetadata,
 } from './component.interface';
 import {
   collectClassMetadata,
   getMemberDistributionWithIdentifiersAndGroups,
   IMember,
 } from './class.metadata';
-import * as decIdUtil from './../utils/decorator-identifier.util';
+import {
+  NgClassDecorator,
+  NgDirectiveClassMemberDecorator,
+  NgComponentClassMemberDecorator,
+} from './../utils/decorator-identifier.util';
 import * as idUtil from './../utils/identifier.util';
 import {
   getArgumentAtPositionAsString,
@@ -34,9 +39,17 @@ import {
   getPropertyAsBoolean,
   getPropertyAsGetFullText,
   getPropertyAsExpression,
+  getObjectLiteralPropertiesAsMap,
 } from '../utils/object-literal-expression.util';
 import { collectExpressionMetadata } from './expression.metadata';
 import { ExpressionMetadata } from './expression.interface';
+import {
+  collectDirectiveClassDecoratorMetadataFor,
+  ComponentPropertyName,
+} from './directive.metadata';
+import { Property as ComponentDecoratorProperty } from './component.decorator-property';
+import { stripQuotes } from '../utils/string-literal.util';
+import { mapToArrayOfStrings } from '../utils/array-literal-expression.util';
 
 // TODO (ryan): Angular Components are a subclass of Directive Behavior.
 //  Should a good deal of this be moved to the directive.metadata file?
@@ -55,9 +68,19 @@ export const collectComponentMetadata = (
   node: ts.ClassDeclaration,
   filepath: string
 ): IComponentMetadata => {
-  const metadata = collectClassMetadata(node, filepath);
+  const directiveDecoratorMetadata = collectDirectiveClassDecoratorMetadataFor(
+    node,
+    NgClassDecorator.Component
+  );
+
+  const componentDecoratorMetadata = collectComponentClassDecoratorMetadata(node);
+
+  const classMetadata = collectClassMetadata(node, filepath);
   const distribution = getMemberDistributionWithIdentifiersAndGroups(node);
-  const constructorParameterMetadata = collectConstructorParameterMetadata(distribution, metadata);
+  const constructorParameterMetadata = collectConstructorParameterMetadata(
+    distribution,
+    classMetadata
+  );
   const inputMembers = collectInputMemberMetadata(distribution);
   const hostBindingMembers = collectHostBindingMemberMetadata(distribution);
   const hostListenerMembers = collectHostListenerMemberMetadata(distribution);
@@ -68,8 +91,14 @@ export const collectComponentMetadata = (
   // Continue building out component specific metadata
 
   return {
-    ...metadata,
-    ngTemplate: '',
+    // Decorators
+    ...directiveDecoratorMetadata,
+    ...componentDecoratorMetadata,
+
+    // Class Members
+    ...classMetadata,
+
+    // Class Member Decorator Metadata
     constructorParameterMetadata,
     inputMembers,
     hostBindingMembers,
@@ -77,7 +106,85 @@ export const collectComponentMetadata = (
     outputMembers,
     contentChildMembers,
     contentChildrenMembers,
+
+    // Placeholder for template
+    ngTemplate: '',
   };
+};
+
+const collectComponentClassDecoratorMetadata = (
+  node: ts.ClassDeclaration
+): IComponentClassDecoratorMetadata => {
+  let template;
+  let templateUrl;
+  let styles;
+  let styleUrls;
+  const classDecoratorMap = getDecoratorMap(node);
+  const decorator = classDecoratorMap.get(NgClassDecorator.Component);
+
+  if (decorator && ts.isCallExpression(decorator.expression)) {
+    const { expression } = decorator;
+
+    if (expression.arguments && ts.isObjectLiteralExpression(expression.arguments[0])) {
+      const properties = expression.arguments[0] as ts.ObjectLiteralExpression;
+      const decoratorProperties = getObjectLiteralPropertiesAsMap<ComponentPropertyName>(
+        properties
+      );
+
+      const stylesProp = decoratorProperties.get(ComponentDecoratorProperty.Styles);
+      styles = collectStylesMetadata(stylesProp);
+
+      const styleUrlsProp = decoratorProperties.get(ComponentDecoratorProperty.StyleUrls);
+      styleUrls = collectStyleUrlsMetadata(styleUrlsProp);
+
+      // template
+      const templateProp = decoratorProperties.get(ComponentDecoratorProperty.Template);
+      template = collectTemplateMetadata(templateProp);
+
+      // templateUrl
+      const templateUrlProp = decoratorProperties.get(ComponentDecoratorProperty.TemplateUrl);
+      templateUrl = collectTemplateUrlMetadata(templateUrlProp);
+    }
+  }
+
+  return {
+    styles,
+    styleUrls,
+    template,
+    templateUrl,
+  };
+};
+
+const collectStylesMetadata = (expression: ts.Expression | undefined): string[] | undefined => {
+  if (expression && ts.isArrayLiteralExpression(expression)) {
+    return mapToArrayOfStrings(expression as ts.ArrayLiteralExpression);
+  }
+
+  return;
+};
+
+const collectStyleUrlsMetadata = (expression: ts.Expression | undefined): string[] | undefined => {
+  if (expression && ts.isArrayLiteralExpression(expression)) {
+    return mapToArrayOfStrings(expression as ts.ArrayLiteralExpression);
+  }
+
+  return;
+};
+
+const collectTemplateMetadata = (expression: ts.Expression | undefined): string | undefined => {
+  if (expression) {
+    return stripQuotes(expression);
+  }
+
+  return;
+};
+
+const collectTemplateUrlMetadata = (expression: ts.Expression | undefined): string | undefined => {
+  if (expression) {
+    return stripQuotes(expression);
+  }
+
+  return;
 };
 
 const collectConstructorParameterMetadata = (
@@ -109,7 +216,7 @@ const collectConstructorParameterMetadata = (
       const paramDecoratorMap = getDecoratorMap(param);
 
       // Handle attributes
-      const attributeDecorator = paramDecoratorMap.get(decIdUtil.ATTRIBUTE);
+      const attributeDecorator = paramDecoratorMap.get(NgDirectiveClassMemberDecorator.Attribute);
       if (attributeDecorator && ts.isDecorator(attributeDecorator)) {
         const attributeName = getArgumentAtPositionAsString(attributeDecorator, 0);
         metadata.attributes.push({
@@ -136,12 +243,12 @@ const collectConstructorParameterMetadata = (
 
 const collectInputMemberMetadata = (distribution: IMember[]): IInputMemberMetadata[] => {
   return distribution
-    .filter((member: IMember) => member.decorators.has(decIdUtil.INPUT))
+    .filter((member: IMember) => member.decorators.has(NgDirectiveClassMemberDecorator.Input))
     .map(
       (member: IMember): IInputMemberMetadata => {
         const { identifier } = member;
         let bindingPropertyName = undefined;
-        const decorator = member.decorators.get(decIdUtil.INPUT);
+        const decorator = member.decorators.get(NgDirectiveClassMemberDecorator.Input);
         if (decorator) {
           bindingPropertyName = getBindingPropertyName(decorator);
         }
@@ -162,11 +269,11 @@ const collectHostBindingMemberMetadata = (
   distribution: IMember[]
 ): IHostBindingMemberMetadata[] => {
   return distribution
-    .filter((member: IMember) => member.decorators.has(decIdUtil.HOST_BINDING))
+    .filter((member: IMember) => member.decorators.has(NgDirectiveClassMemberDecorator.HostBinding))
     .map((member: IMember) => {
       const { identifier } = member;
       let hostPropertyName;
-      const decorator = member.decorators.get(decIdUtil.HOST_BINDING);
+      const decorator = member.decorators.get(NgDirectiveClassMemberDecorator.HostBinding);
       if (decorator) {
         hostPropertyName = getHostPropertyName(decorator);
       }
@@ -182,12 +289,14 @@ const collectHostListenerMemberMetadata = (
   distribution: IMember[]
 ): IHostListenerMemberMetadata[] => {
   return distribution
-    .filter((member: IMember) => member.decorators.has(decIdUtil.HOST_LISTENER))
+    .filter((member: IMember) =>
+      member.decorators.has(NgDirectiveClassMemberDecorator.HostListener)
+    )
     .map((member: IMember) => {
       const { identifier } = member;
       let eventName: string | undefined = '',
         args: string[] = [];
-      const decorator = member.decorators.get(decIdUtil.HOST_LISTENER);
+      const decorator = member.decorators.get(NgDirectiveClassMemberDecorator.HostListener);
       if (decorator) {
         eventName = getHostListenerMemberEventName(decorator);
         args = getHostListenerMemberArgs(decorator);
@@ -219,11 +328,11 @@ const getHostPropertyName = (decorator: ts.Decorator): string | undefined => {
 //   https://www.typescriptlang.org/docs/handbook/generics.html
 const collectOutputMemberMetadata = (distribution: IMember[]): IOutputMemberMetadata[] => {
   return distribution
-    .filter((member: IMember) => member.decorators.has(decIdUtil.OUTPUT))
+    .filter((member: IMember) => member.decorators.has(NgDirectiveClassMemberDecorator.Output))
     .map((member: IMember) => {
       const { identifier } = member;
       let bindingPropertyName;
-      const decorator = member.decorators.get(decIdUtil.OUTPUT);
+      const decorator = member.decorators.get(NgDirectiveClassMemberDecorator.Output);
       if (decorator) {
         bindingPropertyName = getBindingPropertyName(decorator);
       }
@@ -239,10 +348,12 @@ const collectContentChildMemberMetadata = (
   distribution: IMember[]
 ): IContentChildMemberMetadata[] => {
   return distribution
-    .filter((member: IMember) => member.decorators.has(decIdUtil.CONTENT_CHILD))
+    .filter((member: IMember) =>
+      member.decorators.has(NgDirectiveClassMemberDecorator.ContentChild)
+    )
     .map((member: IMember) => {
       const { identifier } = member;
-      const decorator = member.decorators.get(decIdUtil.CONTENT_CHILD);
+      const decorator = member.decorators.get(NgDirectiveClassMemberDecorator.ContentChild);
       let selector!: ExpressionMetadata;
       let read;
       let isStatic!: boolean | undefined;
@@ -286,10 +397,12 @@ const collectContentChildrenMemberMetadata = (
   distribution: IMember[]
 ): IContentChildrenMemberMetadata[] => {
   return distribution
-    .filter((member: IMember) => member.decorators.has(decIdUtil.CONTENT_CHILDREN))
+    .filter((member: IMember) =>
+      member.decorators.has(NgDirectiveClassMemberDecorator.ContentChildren)
+    )
     .map((member: IMember) => {
       const { identifier } = member;
-      const decorator = member.decorators.get(decIdUtil.CONTENT_CHILDREN);
+      const decorator = member.decorators.get(NgDirectiveClassMemberDecorator.ContentChildren);
       let selector!: ExpressionMetadata;
       let read;
       let descendants!: boolean | undefined;

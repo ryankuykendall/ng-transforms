@@ -1,11 +1,10 @@
 import { IClassMetadata, IInGroup } from './class.interface';
 import { IHasIdentifier } from './base.interface';
-import { IType } from './type.interface';
 import { ExpressionMetadata } from './expression.interface';
+import { IDirectiveClassDecoratorMetadata } from './directive.interface';
 
 // TODO (ryan): Angular Components are a superset of Directive Behavior.
-//  Should a good deal of this be moved to the directive.interface file?
-//  Or should it be shared?
+//  A good deal of this needs to be moved to the directive.interface file?
 
 //
 export interface IConstructorParameterAttribute extends IHasIdentifier {
@@ -72,18 +71,31 @@ export interface IContentChildrenMemberMetadata extends IHasIdentifier, IInGroup
   read?: ExpressionMetadata;
   selector: ExpressionMetadata;
 }
+export type ComponentAssetFilepath = string;
+export interface IComponentClassDecoratorMetadata {
+  styles?: string[];
+  styleUrls?: ComponentAssetFilepath[];
+  template?: string;
+  templateUrl?: ComponentAssetFilepath;
+}
 
-export interface IComponentMetadata extends IClassMetadata {
+export interface IComponentMetadata
+  extends IClassMetadata,
+    IDirectiveClassDecoratorMetadata,
+    IComponentClassDecoratorMetadata {
   // TODO (ryan): Flesh this out
   ngTemplate: string;
   constructorParameterMetadata?: IConstructorParameterMetadata;
+
+  // Could be inherited from Decorator Metadata.
   inputMembers: IInputMemberMetadata[];
   hostBindingMembers: IHostBindingMemberMetadata[];
   hostListenerMembers: IHostListenerMemberMetadata[];
   outputMembers: IOutputMemberMetadata[];
-  // TO consider:
-  // viewChildMembers
-  // viewChildrenMembers
   contentChildMembers: IContentChildMemberMetadata[];
   contentChildrenMembers: IContentChildrenMemberMetadata[];
+
+  // TO consider, but that are component specific:
+  // viewChildMembers
+  // viewChildrenMembers
 }

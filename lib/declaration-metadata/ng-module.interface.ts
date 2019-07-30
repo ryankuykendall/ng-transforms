@@ -1,3 +1,4 @@
 import { IClassMetadata } from './class.interface';
 
-export interface INgModuleMetadata extends IClassMetadata {}
+export interface INgModuleClassDecoratorMetadata {}
+export interface INgModuleMetadata extends IClassMetadata, INgModuleClassDecoratorMetadata {}

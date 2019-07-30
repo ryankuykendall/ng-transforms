@@ -121,3 +121,19 @@ export const getPropertyAsExpression = (
 
   return;
 };
+
+export const getObjectLiteralPropertiesAsMap = <T extends string>(
+  objectLiteral: ts.ObjectLiteralExpression
+): Map<T, ts.Expression> => {
+  const properties: Map<T, ts.Expression> = new Map();
+  objectLiteral.properties.forEach((prop: ts.ObjectLiteralElementLike) => {
+    if (ts.isPropertyAssignment(prop)) {
+      const paProp = prop as ts.PropertyAssignment;
+      const key = paProp.name.getText();
+      const value = paProp.initializer;
+      properties.set(key as T, value);
+    }
+  });
+
+  return properties;
+};

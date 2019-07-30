@@ -3,9 +3,11 @@ import { IDirectiveMetadata, IDirectiveClassDecoratorMetadata } from './directiv
 import { collectClassMetadata } from './class.metadata';
 import { IClassMetadata } from './class.interface';
 import { getDecoratorMap } from '../utils/decorator.util';
-import { DIRECTIVE } from '../utils/decorator-identifier.util';
+import { NgClassDecorator } from '../utils/decorator-identifier.util';
 import { Property as DirectiveDecoratorProperty } from './directive.decorator-property';
 import { Property as ComponentDecoratorProperty } from './component.decorator-property';
+import { stripQuotes } from '../utils/string-literal.util';
+import { getObjectLiteralPropertiesAsMap } from '../utils/object-literal-expression.util';
 
 // Use the superset to identify these
 export type ComponentPropertyName = DirectiveDecoratorProperty | ComponentDecoratorProperty;
@@ -15,10 +17,10 @@ export const collectDirectiveMetadata = (
   filepath: string
 ): IDirectiveMetadata => {
   const classMetadata: IClassMetadata = collectClassMetadata(node, filepath);
-  // Continue collecting directive specific metadata
-  const classDecoratorMap = getDecoratorMap(node);
-  const directiveDecorator = classDecoratorMap.get(DIRECTIVE);
-  const directiveDecoratorMetadata = collectDirectiveDecoratorMetadata(directiveDecorator);
+  const directiveDecoratorMetadata = collectDirectiveClassDecoratorMetadataFor(
+    node,
+    NgClassDecorator.Directive
+  );
 
   return {
     ...(directiveDecoratorMetadata as IDirectiveClassDecoratorMetadata),
@@ -29,9 +31,18 @@ export const collectDirectiveMetadata = (
   };
 };
 
+export const collectDirectiveClassDecoratorMetadataFor = (
+  node: ts.ClassDeclaration,
+  identifier: NgClassDecorator
+): IDirectiveClassDecoratorMetadata => {
+  const classDecoratorMap = getDecoratorMap(node);
+  const decorator = classDecoratorMap.get(identifier);
+  return collectDirectiveDecoratorMetadata(decorator);
+};
+
 // This is written to take the call expression so that we can pass the @Component call
 //   expression to it too since @Component is a subclass of @Directive.
-export const collectDirectiveDecoratorMetadata = (
+const collectDirectiveDecoratorMetadata = (
   decorator: ts.Decorator | undefined
 ): IDirectiveClassDecoratorMetadata => {
   let selector = '';
@@ -43,11 +54,13 @@ export const collectDirectiveDecoratorMetadata = (
   let exportAs;
 
   if (decorator && ts.isCallExpression(decorator.expression)) {
-    const expression = decorator.expression;
+    const { expression } = decorator;
 
     if (expression.arguments && ts.isObjectLiteralExpression(expression.arguments[0])) {
       const properties = expression.arguments[0] as ts.ObjectLiteralExpression;
-      const decoratorProperties = getDirectiveDecoratorProperties(properties);
+      const decoratorProperties = getObjectLiteralPropertiesAsMap<ComponentPropertyName>(
+        properties
+      );
 
       // Selector
       const selectorProp = decoratorProperties.get(DirectiveDecoratorProperty.Selector);
@@ -90,22 +103,6 @@ export const collectDirectiveDecoratorMetadata = (
   };
 };
 
-const getDirectiveDecoratorProperties = (
-  objectLiteral: ts.ObjectLiteralExpression
-): Map<ComponentPropertyName, ts.Expression> => {
-  const properties: Map<ComponentPropertyName, ts.Expression> = new Map();
-  objectLiteral.properties.forEach((prop: ts.ObjectLiteralElementLike) => {
-    if (ts.isPropertyAssignment(prop)) {
-      const paProp = prop as ts.PropertyAssignment;
-      const key = paProp.name.getText();
-      const value = paProp.initializer;
-      properties.set(key as ComponentPropertyName, value);
-    }
-  });
-
-  return properties;
-};
-
 export const collectExportAsMetadata = (
   expression: ts.Expression | undefined
 ): string | undefined => {
@@ -121,7 +118,7 @@ export const collectSelectorMetadata = (expression: ts.Expression | undefined): 
   if (expression && ts.isStringLiteral(expression)) {
     // TODO (ryan): Turn this into a switch statement on SyntaxKind so that we can log
     //   situations where another expression is used.
-    return expression.getText();
+    return stripQuotes(expression);
   }
   return '';
 };

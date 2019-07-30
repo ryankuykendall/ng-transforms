@@ -9,3 +9,24 @@ export const HOST_LISTENER = 'HostListener';
 export const INPUT = 'Input';
 export const NG_MODULE = 'NgModule';
 export const OUTPUT = 'Output';
+
+export enum NgClassDecorator {
+  Component = 'Component',
+  Directive = 'Directive',
+  NgModule = 'NgModule',
+}
+
+export enum NgDirectiveClassMemberDecorator {
+  Attribute = 'Attribute',
+  ContentChild = 'ContentChild',
+  ContentChildren = 'ContentChildren',
+  HostBinding = 'HostBinding',
+  HostListener = 'HostListener',
+  Input = 'Input',
+  Output = 'Output',
+}
+
+export enum NgComponentClassMemberDecorator {
+  ViewChild = 'ViewChild',
+  ViewChildren = 'ViewChildren',
+}

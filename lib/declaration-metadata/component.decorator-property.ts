@@ -16,3 +16,19 @@ export enum Property {
   TemplateUrl = 'templateUrl',
   ViewProviders = 'viewProviders',
 }
+
+export const CHANGE_DETECTION_STRATEGY = 'ChangeDetectionStrategy';
+// TODO (ryan): We should probably just get this from @angular/core
+export enum ChangeDetectionStrategy {
+  OnPush = 'OnPush',
+  Default = 'Default',
+}
+
+export const VIEW_ENCAPSULATION = 'ViewEncapsulation';
+// TODO (ryan): We should probably just get this from @angular/core
+export enum ViewEncapsulation {
+  Native = 'Native',
+  Emulated = 'Emulated',
+  None = 'None',
+  ShadowDom = 'ShadowDom',
+}

@@ -47,9 +47,16 @@ import {
   collectDirectiveClassDecoratorMetadataFor,
   ComponentPropertyName,
 } from './directive.metadata';
-import { Property as ComponentDecoratorProperty } from './component.decorator-property';
+import {
+  Property as ComponentDecoratorProperty,
+  ChangeDetectionStrategy,
+  CHANGE_DETECTION_STRATEGY,
+  VIEW_ENCAPSULATION,
+  ViewEncapsulation,
+} from './component.decorator-property';
 import { stripQuotes } from '../utils/string-literal.util';
 import { mapToArrayOfStrings } from '../utils/array-literal-expression.util';
+import * as logger from './../utils/logger.util';
 
 // TODO (ryan): Angular Components are a subclass of Directive Behavior.
 //  Should a good deal of this be moved to the directive.metadata file?
@@ -99,6 +106,8 @@ export const collectComponentMetadata = (
     ...classMetadata,
 
     // Class Member Decorator Metadata
+    // TODO (ryan): Move this to directive-class-member.metadata.ts so that
+    //   it can be pulled in by Directives and Components?
     constructorParameterMetadata,
     inputMembers,
     hostBindingMembers,
@@ -115,10 +124,14 @@ export const collectComponentMetadata = (
 const collectComponentClassDecoratorMetadata = (
   node: ts.ClassDeclaration
 ): IComponentClassDecoratorMetadata => {
+  let changeDetection;
+  let encapsulation;
+  let preserveWhitespaces;
   let template;
   let templateUrl;
   let styles;
   let styleUrls;
+
   const classDecoratorMap = getDecoratorMap(node);
   const decorator = classDecoratorMap.get(NgClassDecorator.Component);
 
@@ -131,9 +144,27 @@ const collectComponentClassDecoratorMetadata = (
         properties
       );
 
+      // changeDetection
+      const changeDetectionProp = decoratorProperties.get(
+        ComponentDecoratorProperty.ChangeDetection
+      );
+      changeDetection = collectChangeDetectionMetadata(changeDetectionProp);
+
+      // encapsulation
+      const encapsulationProp = decoratorProperties.get(ComponentDecoratorProperty.Encapsulation);
+      encapsulation = collectEncapsulationMetadata(encapsulationProp);
+
+      // preserveWhitespaces
+      const preserveWhitespacesProp = decoratorProperties.get(
+        ComponentDecoratorProperty.PreserveWhitespaces
+      );
+      preserveWhitespaces = collectPreserveWhitespacesMetadata(preserveWhitespacesProp);
+
+      // styles
       const stylesProp = decoratorProperties.get(ComponentDecoratorProperty.Styles);
       styles = collectStylesMetadata(stylesProp);
 
+      // stylesUrl
       const styleUrlsProp = decoratorProperties.get(ComponentDecoratorProperty.StyleUrls);
       styleUrls = collectStyleUrlsMetadata(styleUrlsProp);
 
@@ -148,11 +179,59 @@ const collectComponentClassDecoratorMetadata = (
   }
 
   return {
+    changeDetection,
+    encapsulation,
+    preserveWhitespaces,
     styles,
     styleUrls,
     template,
     templateUrl,
   };
+};
+
+const collectChangeDetectionMetadata = (
+  expression: ts.Expression | undefined
+): ChangeDetectionStrategy | undefined => {
+  if (
+    expression &&
+    ts.isPropertyAccessExpression(expression) &&
+    expression.expression.getText() === CHANGE_DETECTION_STRATEGY
+  ) {
+    return expression.name.getText() as ChangeDetectionStrategy;
+  }
+
+  return;
+};
+
+// TODO (ryan): Generalize this method so that it can be used by both
+//   encapsulation as well as changeDetection
+const collectEncapsulationMetadata = (
+  expression: ts.Expression | undefined
+): ViewEncapsulation | undefined => {
+  if (
+    expression &&
+    ts.isPropertyAccessExpression(expression) &&
+    expression.expression.getText().trim() === VIEW_ENCAPSULATION
+  ) {
+    return expression.name.getText() as ViewEncapsulation;
+  }
+
+  return;
+};
+
+const collectPreserveWhitespacesMetadata = (
+  expression: ts.Expression | undefined
+): boolean | undefined => {
+  if (expression && ts.isPropertyAssignment(expression)) {
+    switch (expression.initializer.kind) {
+      case ts.SyntaxKind.FalseKeyword:
+        return false;
+      case ts.SyntaxKind.TrueKeyword:
+        return true;
+    }
+  }
+
+  return;
 };
 
 const collectStylesMetadata = (expression: ts.Expression | undefined): string[] | undefined => {

@@ -1,8 +1,8 @@
 export enum Property {
   Id = 'id',
-  bootstrap = 'bootstrap',
+  Bootstrap = 'bootstrap',
   Declarations = 'declarations',
-  entryComponents = 'entryComponents',
+  EntryComponents = 'entryComponents',
   Exports = 'exports',
   Imports = 'imports',
   Providers = 'providers',

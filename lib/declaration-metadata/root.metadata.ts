@@ -1,8 +1,8 @@
 import { IRootMetadata, RootMetadataType, RootType } from './root.interface';
-import { IClassMetadata } from './class.interface';
 
 export const getRootMetadataStub = (): IRootMetadata => {
   return {
+    [RootType.SourceFiles]: [],
     [RootType.Classes]: [],
     [RootType.Components]: [],
     [RootType.Directives]: [],
@@ -10,7 +10,7 @@ export const getRootMetadataStub = (): IRootMetadata => {
     [RootType.Functions]: [],
     [RootType.Interfaces]: [],
     [RootType.Methods]: [],
-    [RootType.Modules]: [],
+    [RootType.NgModules]: [],
     [RootType.TypeAliases]: [],
   };
 };

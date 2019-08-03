@@ -7,6 +7,7 @@ import { IRootMethodMetadata } from './method.interface';
 import { INgModuleMetadata } from './ng-module.interface';
 import { ITypeAliasMetadata } from './type-aliases.interface';
 import { IRootFunctionMetadata } from './function.interface';
+import { ISourceFileMetadata } from './source-file.interface';
 
 // Instead of RootTypes, we should call these declarations
 // QUESTION (ryan): Should we be capturing exported functions/methods
@@ -19,7 +20,8 @@ export enum RootType {
   Functions = 'functions',
   Interfaces = 'interfaces',
   Methods = 'methods',
-  Modules = 'modules',
+  NgModules = 'ngModules',
+  SourceFiles = 'sourceFiles',
   TypeAliases = 'typeAliases',
 }
 
@@ -32,6 +34,7 @@ export type RootCollectorCallbackType = (
 type indexableRoot = { [key: string]: Array<RootMetadataType> };
 
 export interface IRootMetadata extends indexableRoot {
+  sourceFiles: ISourceFileMetadata[];
   classes: IClassMetadata[];
   components: IComponentMetadata[];
   directives: IDirectiveMetadata[];
@@ -39,11 +42,12 @@ export interface IRootMetadata extends indexableRoot {
   functions: IRootFunctionMetadata[]; // TODO (ryan)!
   interfaces: IInterfaceMetadata[];
   methods: IRootMethodMetadata[]; // TODO (ryan)!
-  modules: INgModuleMetadata[];
+  ngModules: INgModuleMetadata[];
   typeAliases: ITypeAliasMetadata[];
 }
 
 export type RootMetadataType =
+  | ISourceFileMetadata
   | IClassMetadata
   | IComponentMetadata
   | IDirectiveMetadata

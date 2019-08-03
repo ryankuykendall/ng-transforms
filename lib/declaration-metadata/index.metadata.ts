@@ -44,7 +44,7 @@ export function collectMetadata<T extends ts.Node>(
           callback.call(null, interfaces, RootType.Directives, metadata);
         } else if (decUtil.hasDecoratorWithName(node, decIdsUtil.NG_MODULE)) {
           const metadata: INgModuleMetadata = collectNgModuleMetadata(node, filepath);
-          callback.call(null, interfaces, RootType.Modules, metadata);
+          callback.call(null, interfaces, RootType.NgModules, metadata);
         } else {
           const metadata: IClassMetadata = collectClassMetadata(node, filepath);
           callback.call(null, interfaces, RootType.Classes, metadata);

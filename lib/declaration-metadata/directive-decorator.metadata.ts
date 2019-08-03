@@ -1,7 +1,8 @@
 import ts from 'typescript';
+import { parse as parseWithCSSWhat, Selector as CSSWhatSelector } from 'css-what';
 import { stripQuotes } from '../utils/string-literal.util';
 import { getObjectLiteralPropertiesAsMap } from '../utils/object-literal-expression.util';
-import { IDirectiveClassDecoratorMetadata } from './directive.interface';
+import { IDirectiveClassDecoratorMetadata, ISelectorSet } from './directive.interface';
 import { Property as DirectiveDecoratorProperty } from './directive-decorator.property';
 import { Property as ComponentDecoratorProperty } from './component-decorator.property';
 
@@ -13,7 +14,7 @@ export type ComponentPropertyName = DirectiveDecoratorProperty | ComponentDecora
 export const collectDirectiveDecoratorMetadata = (
   decorator: ts.Decorator | undefined
 ): IDirectiveClassDecoratorMetadata => {
-  let selector = '';
+  let selector!: ISelectorSet;
   let hostElementBindings: string[] = [];
   let inputs: string[] = [];
   let outputs: string[] = [];
@@ -84,13 +85,22 @@ export const collectExportAsMetadata = (
   return;
 };
 
-export const collectSelectorMetadata = (initializer: ts.Expression | undefined): string => {
+export const collectSelectorMetadata = (initializer: ts.Expression | undefined): ISelectorSet => {
   if (initializer && ts.isStringLiteral(initializer)) {
+    const raw: string = stripQuotes(initializer);
+    const selectors: CSSWhatSelector[][] = parseWithCSSWhat(raw);
     // TODO (ryan): Turn this into a switch statement on SyntaxKind so that we can log
     //   situations where another expression is used.
-    return stripQuotes(initializer);
+    return {
+      raw,
+      selectors,
+    };
   }
-  return '';
+
+  return {
+    raw: '',
+    selectors: [],
+  };
 };
 
 export const collectHostElementBindingMetadata = (

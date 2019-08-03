@@ -1,6 +1,6 @@
 import ts from 'typescript';
 
-import { IComponentClassDecoratorMetadata } from './component.interface';
+import { IComponentClassDecoratorMetadata, IProvider } from './component.interface';
 import { getDecoratorMap } from '../utils/decorator.util';
 import { NgClassDecorator } from '../utils/decorator-identifier.util';
 import { getObjectLiteralPropertiesAsMap } from '../utils/object-literal-expression.util';
@@ -27,6 +27,7 @@ export const collectComponentClassDecoratorMetadata = (
   let templateUrl;
   let styles;
   let styleUrls;
+  let viewProviders;
 
   const classDecoratorMap = getDecoratorMap(node);
   const decorator = classDecoratorMap.get(NgClassDecorator.Component);
@@ -75,6 +76,12 @@ export const collectComponentClassDecoratorMetadata = (
         ComponentDecoratorProperty.TemplateUrl
       );
       templateUrl = collectTemplateUrlMetadata(templateUrlInitializer);
+
+      // viewProviders
+      const viewProvidersInitializer = decoratorProperties.get(
+        ComponentDecoratorProperty.ViewProviders
+      );
+      viewProviders = collectViewProviderMetadata(viewProvidersInitializer);
     }
   }
 
@@ -86,18 +93,19 @@ export const collectComponentClassDecoratorMetadata = (
     styleUrls,
     template,
     templateUrl,
+    viewProviders,
   };
 };
 
 const collectChangeDetectionMetadata = (
-  expression: ts.Expression | undefined
+  initializer: ts.Expression | undefined
 ): ChangeDetectionStrategy | undefined => {
   if (
-    expression &&
-    ts.isPropertyAccessExpression(expression) &&
-    expression.expression.getText() === CHANGE_DETECTION_STRATEGY
+    initializer &&
+    ts.isPropertyAccessExpression(initializer) &&
+    initializer.expression.getText() === CHANGE_DETECTION_STRATEGY
   ) {
-    return expression.name.getText() as ChangeDetectionStrategy;
+    return initializer.name.getText() as ChangeDetectionStrategy;
   }
 
   return;
@@ -106,24 +114,24 @@ const collectChangeDetectionMetadata = (
 // TODO (ryan): Generalize this method so that it can be used by both
 //   encapsulation as well as changeDetection
 const collectEncapsulationMetadata = (
-  expression: ts.Expression | undefined
+  initializer: ts.Expression | undefined
 ): ViewEncapsulation | undefined => {
   if (
-    expression &&
-    ts.isPropertyAccessExpression(expression) &&
-    expression.expression.getText().trim() === VIEW_ENCAPSULATION
+    initializer &&
+    ts.isPropertyAccessExpression(initializer) &&
+    initializer.expression.getText().trim() === VIEW_ENCAPSULATION
   ) {
-    return expression.name.getText() as ViewEncapsulation;
+    return initializer.name.getText() as ViewEncapsulation;
   }
 
   return;
 };
 
 const collectPreserveWhitespacesMetadata = (
-  expression: ts.Expression | undefined
+  initializer: ts.Expression | undefined
 ): boolean | undefined => {
-  if (expression && ts.isPropertyAssignment(expression)) {
-    switch (expression.initializer.kind) {
+  if (initializer && ts.isPropertyAssignment(initializer)) {
+    switch (initializer.initializer.kind) {
       case ts.SyntaxKind.FalseKeyword:
         return false;
       case ts.SyntaxKind.TrueKeyword:
@@ -134,33 +142,51 @@ const collectPreserveWhitespacesMetadata = (
   return;
 };
 
-const collectStylesMetadata = (expression: ts.Expression | undefined): string[] | undefined => {
-  if (expression && ts.isArrayLiteralExpression(expression)) {
-    return mapToArrayOfStrings(expression as ts.ArrayLiteralExpression);
+const collectStylesMetadata = (initializer: ts.Expression | undefined): string[] | undefined => {
+  if (initializer && ts.isArrayLiteralExpression(initializer)) {
+    return mapToArrayOfStrings(initializer as ts.ArrayLiteralExpression);
   }
 
   return;
 };
 
-const collectStyleUrlsMetadata = (expression: ts.Expression | undefined): string[] | undefined => {
-  if (expression && ts.isArrayLiteralExpression(expression)) {
-    return mapToArrayOfStrings(expression as ts.ArrayLiteralExpression);
+const collectStyleUrlsMetadata = (initializer: ts.Expression | undefined): string[] | undefined => {
+  if (initializer && ts.isArrayLiteralExpression(initializer)) {
+    return mapToArrayOfStrings(initializer as ts.ArrayLiteralExpression);
   }
 
   return;
 };
 
-const collectTemplateMetadata = (expression: ts.Expression | undefined): string | undefined => {
-  if (expression) {
-    return stripQuotes(expression);
+const collectTemplateMetadata = (initializer: ts.Expression | undefined): string | undefined => {
+  if (initializer) {
+    return stripQuotes(initializer);
   }
 
   return;
 };
 
-const collectTemplateUrlMetadata = (expression: ts.Expression | undefined): string | undefined => {
-  if (expression) {
-    return stripQuotes(expression);
+const collectTemplateUrlMetadata = (initializer: ts.Expression | undefined): string | undefined => {
+  if (initializer) {
+    return stripQuotes(initializer);
+  }
+
+  return;
+};
+
+// TODO (ryan): Update this to be more useful once we can track down a good example
+//   of where this is used (It is currently not used in Angular Material.)
+const collectViewProviderMetadata = (
+  initializer: ts.Expression | undefined
+): IProvider[] | undefined => {
+  if (initializer && ts.isArrayLiteralExpression(initializer)) {
+    return initializer.elements.map(
+      (provider: ts.Expression): IProvider => {
+        return {
+          raw: provider.getText(),
+        };
+      }
+    );
   }
 
   return;

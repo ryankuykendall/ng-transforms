@@ -73,6 +73,13 @@ export interface IContentChildrenMemberMetadata extends IHasIdentifier, IInGroup
   selector: ExpressionMetadata;
 }
 export type ComponentAssetFilepath = string;
+
+// TODO (ryan): Update this to be more useful once we can track down a good example
+//   of where this is used (It is currently not used in Angular Material.)
+export interface IProvider {
+  raw: string;
+}
+
 export interface IComponentClassDecoratorMetadata {
   changeDetection?: ChangeDetectionStrategy;
   encapsulation?: ViewEncapsulation;
@@ -81,6 +88,7 @@ export interface IComponentClassDecoratorMetadata {
   styleUrls?: ComponentAssetFilepath[];
   template?: string;
   templateUrl?: ComponentAssetFilepath;
+  viewProviders?: IProvider[];
 }
 
 export interface IComponentMetadata

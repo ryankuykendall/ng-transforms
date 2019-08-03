@@ -74,30 +74,30 @@ export const collectDirectiveDecoratorMetadata = (
 };
 
 export const collectExportAsMetadata = (
-  expression: ts.Expression | undefined
+  initializer: ts.Expression | undefined
 ): string | undefined => {
-  if (expression && ts.isStringLiteral(expression)) {
+  if (initializer && ts.isStringLiteral(initializer)) {
     // TODO (ryan): Turn this into a switch statement on SyntaxKind so that we can log
     //   situations where another expression is used.
-    return expression.getText();
+    return initializer.getText();
   }
   return;
 };
 
-export const collectSelectorMetadata = (expression: ts.Expression | undefined): string => {
-  if (expression && ts.isStringLiteral(expression)) {
+export const collectSelectorMetadata = (initializer: ts.Expression | undefined): string => {
+  if (initializer && ts.isStringLiteral(initializer)) {
     // TODO (ryan): Turn this into a switch statement on SyntaxKind so that we can log
     //   situations where another expression is used.
-    return stripQuotes(expression);
+    return stripQuotes(initializer);
   }
   return '';
 };
 
 export const collectHostElementBindingMetadata = (
-  expression: ts.Expression | undefined
+  initializer: ts.Expression | undefined
 ): string[] => {
-  if (expression && ts.isObjectLiteralExpression(expression)) {
-    return (expression as ts.ObjectLiteralExpression).properties.map(
+  if (initializer && ts.isObjectLiteralExpression(initializer)) {
+    return (initializer as ts.ObjectLiteralExpression).properties.map(
       (prop: ts.ObjectLiteralElementLike) => {
         // TODO (ryan): Run the Typescript compiler on the property initializer so that we can
         //   further classify whether the initializer is just an ExpressionStatement > StringLiteral
@@ -110,9 +110,9 @@ export const collectHostElementBindingMetadata = (
   return [];
 };
 
-export const collectInputsMetadata = (expression: ts.Expression | undefined): string[] => {
-  if (expression && ts.isArrayLiteralExpression(expression)) {
-    return (expression as ts.ArrayLiteralExpression).elements.map((element: ts.Expression) => {
+export const collectInputsMetadata = (initializer: ts.Expression | undefined): string[] => {
+  if (initializer && ts.isArrayLiteralExpression(initializer)) {
+    return (initializer as ts.ArrayLiteralExpression).elements.map((element: ts.Expression) => {
       console.log(' - Input element', element.getText());
       // TODO (ryan): These need to be more finely parsed to accommodate the remapping of identifier
       //   to the attribute representation "'matTreeNodeDefWhen'" vs. "'when: matTreeNodeDefWhen'"
@@ -123,9 +123,9 @@ export const collectInputsMetadata = (expression: ts.Expression | undefined): st
   return [];
 };
 
-export const collectOutputsMetadata = (expression: ts.Expression | undefined): string[] => {
-  if (expression && ts.isArrayLiteralExpression(expression)) {
-    return (expression as ts.ArrayLiteralExpression).elements.map((element: ts.Expression) => {
+export const collectOutputsMetadata = (initializer: ts.Expression | undefined): string[] => {
+  if (initializer && ts.isArrayLiteralExpression(initializer)) {
+    return (initializer as ts.ArrayLiteralExpression).elements.map((element: ts.Expression) => {
       // TODO (ryan): This need to be further refined for sub properties.
       return element.getText();
     });
@@ -134,9 +134,9 @@ export const collectOutputsMetadata = (expression: ts.Expression | undefined): s
   return [];
 };
 
-export const collectProvidersMetadata = (expression: ts.Expression | undefined): string[] => {
-  if (expression && ts.isArrayLiteralExpression(expression)) {
-    return (expression as ts.ArrayLiteralExpression).elements.map((element: ts.Expression) => {
+export const collectProvidersMetadata = (initializer: ts.Expression | undefined): string[] => {
+  if (initializer && ts.isArrayLiteralExpression(initializer)) {
+    return (initializer as ts.ArrayLiteralExpression).elements.map((element: ts.Expression) => {
       // TODO (ryan): This need to be further refined for sub types & properties.
       return element.getText();
     });
@@ -145,9 +145,9 @@ export const collectProvidersMetadata = (expression: ts.Expression | undefined):
   return [];
 };
 
-export const collectQueriesMetadata = (expression: ts.Expression | undefined): string[] => {
-  if (expression && ts.isArrayLiteralExpression(expression)) {
-    return (expression as ts.ArrayLiteralExpression).elements.map((element: ts.Expression) => {
+export const collectQueriesMetadata = (initializer: ts.Expression | undefined): string[] => {
+  if (initializer && ts.isArrayLiteralExpression(initializer)) {
+    return (initializer as ts.ArrayLiteralExpression).elements.map((element: ts.Expression) => {
       // TODO (ryan): This need to be further refined for sub properties.
       return element.getText();
     });

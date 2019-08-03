@@ -79,6 +79,11 @@ export enum ModuleIdType {
   SystemJS = 'SystemJS',
 }
 
+export interface IInterpolation {
+  start: string;
+  end: string;
+}
+
 // TODO (ryan): Update this to be more useful once we can track down a good example
 //   of where this is used (It is currently not used in Angular Material.)
 export interface IProvider {
@@ -88,6 +93,7 @@ export interface IProvider {
 export interface IComponentClassDecoratorMetadata {
   changeDetection?: ChangeDetectionStrategy;
   encapsulation?: ViewEncapsulation;
+  interpolation?: IInterpolation;
   moduleId?: ModuleIdType;
   preserveWhitespaces?: boolean;
   styles?: string[];

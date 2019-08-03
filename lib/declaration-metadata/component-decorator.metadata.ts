@@ -1,6 +1,11 @@
 import ts from 'typescript';
 
-import { IComponentClassDecoratorMetadata, IProvider, ModuleIdType } from './component.interface';
+import {
+  IComponentClassDecoratorMetadata,
+  IProvider,
+  ModuleIdType,
+  IInterpolation,
+} from './component.interface';
 import { getDecoratorMap } from '../utils/decorator.util';
 import { NgClassDecorator } from '../utils/decorator-identifier.util';
 import { getObjectLiteralPropertiesAsMap } from '../utils/object-literal-expression.util';
@@ -22,6 +27,7 @@ export const collectComponentClassDecoratorMetadata = (
 ): IComponentClassDecoratorMetadata => {
   let changeDetection;
   let encapsulation;
+  let interpolation;
   let moduleId;
   let preserveWhitespaces;
   let template;
@@ -53,6 +59,12 @@ export const collectComponentClassDecoratorMetadata = (
         ComponentDecoratorProperty.Encapsulation
       );
       encapsulation = collectEncapsulationMetadata(encapsulationInitializer);
+
+      // interpolation
+      const interpolationInitializer = decoratorProperties.get(
+        ComponentDecoratorProperty.Interpolation
+      );
+      interpolation = collectInterpolationMetadata(interpolationInitializer);
 
       // moduleId
       const moduleIdInitializer = decoratorProperties.get(ComponentDecoratorProperty.ModuleId);
@@ -128,6 +140,23 @@ const collectEncapsulationMetadata = (
     initializer.expression.getText().trim() === VIEW_ENCAPSULATION
   ) {
     return initializer.name.getText() as ViewEncapsulation;
+  }
+
+  return;
+};
+
+const collectInterpolationMetadata = (
+  initializer: ts.Expression | undefined
+): IInterpolation | undefined => {
+  if (initializer && ts.isArrayLiteralExpression(initializer)) {
+    const interpItems = mapToArrayOfStrings(initializer);
+    if (interpItems && interpItems.length === 2) {
+      const [start, end] = interpItems;
+      return {
+        start,
+        end,
+      };
+    }
   }
 
   return;

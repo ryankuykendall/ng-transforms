@@ -12,7 +12,7 @@ import {
   CHANGE_DETECTION_STRATEGY,
   VIEW_ENCAPSULATION,
   ViewEncapsulation,
-} from './component.decorator-property';
+} from './component-decorator.property';
 import { stripQuotes } from '../utils/string-literal.util';
 import { mapToArrayOfStrings } from '../utils/array-literal-expression.util';
 import * as logger from './../utils/logger.util';

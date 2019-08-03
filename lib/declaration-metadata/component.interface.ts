@@ -2,7 +2,7 @@ import { IClassMetadata, IInGroup } from './class.interface';
 import { IHasIdentifier } from './base.interface';
 import { ExpressionMetadata } from './expression.interface';
 import { IDirectiveClassDecoratorMetadata } from './directive.interface';
-import { ViewEncapsulation, ChangeDetectionStrategy } from './component.decorator-property';
+import { ViewEncapsulation, ChangeDetectionStrategy } from './component-decorator.property';
 
 // TODO (ryan): Angular Components are a superset of Directive Behavior.
 //  A good deal of this needs to be moved to the directive.interface file?

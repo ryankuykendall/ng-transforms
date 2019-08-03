@@ -2,8 +2,8 @@ import ts from 'typescript';
 import { stripQuotes } from '../utils/string-literal.util';
 import { getObjectLiteralPropertiesAsMap } from '../utils/object-literal-expression.util';
 import { IDirectiveClassDecoratorMetadata } from './directive.interface';
-import { Property as DirectiveDecoratorProperty } from './directive.decorator-property';
-import { Property as ComponentDecoratorProperty } from './component.decorator-property';
+import { Property as DirectiveDecoratorProperty } from './directive-decorator.property';
+import { Property as ComponentDecoratorProperty } from './component-decorator.property';
 
 // Use the superset to identify these
 export type ComponentPropertyName = DirectiveDecoratorProperty | ComponentDecoratorProperty;

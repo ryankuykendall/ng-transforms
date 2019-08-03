@@ -12,7 +12,7 @@ import * as fileUtil from './lib/utils/file.util';
 import * as prettierUtil from './lib/utils/prettier.util';
 import * as aleUtil from './lib/utils/array-literal-expression.util';
 import * as oleUtil from './lib/utils/object-literal-expression.util';
-import { Property as cdProperty } from './lib/declaration-metadata/component.decorator-property';
+import { Property as cdProperty } from './lib/declaration-metadata/component-decorator.property';
 
 import * as dm from './lib/declaration-metadata/index.metadata';
 import {

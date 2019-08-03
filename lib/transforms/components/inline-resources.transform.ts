@@ -9,7 +9,7 @@ import {
 } from './inline-resources.interface';
 
 import * as decIdsUtil from './../../utils/decorator-identifier.util';
-import { Property as cdProperty } from './../../declaration-metadata/component.decorator-property';
+import { Property as cdProperty } from '../../declaration-metadata/component-decorator.property';
 
 const withComponentDecoratorConfiguration = (
   workingNode: ts.Node,

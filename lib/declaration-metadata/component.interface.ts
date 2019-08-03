@@ -74,6 +74,16 @@ export interface IContentChildrenMemberMetadata extends IHasIdentifier, IInGroup
 }
 export type ComponentAssetFilepath = string;
 
+// TODO (ryan): Continue to refine this...
+export interface IAnimation {
+  raw: string;
+}
+
+// TODO (ryan): Continue to refine this...
+export interface IEntryComponent {
+  raw: string;
+}
+
 export enum ModuleIdType {
   CommonJS = 'CommonJS',
   SystemJS = 'SystemJS',
@@ -91,8 +101,10 @@ export interface IProvider {
 }
 
 export interface IComponentClassDecoratorMetadata {
+  animations?: IAnimation[];
   changeDetection?: ChangeDetectionStrategy;
   encapsulation?: ViewEncapsulation;
+  entryComponents?: IEntryComponent[];
   interpolation?: IInterpolation;
   moduleId?: ModuleIdType;
   preserveWhitespaces?: boolean;

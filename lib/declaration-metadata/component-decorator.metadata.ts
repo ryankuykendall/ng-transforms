@@ -5,6 +5,8 @@ import {
   IProvider,
   ModuleIdType,
   IInterpolation,
+  IEntryComponent,
+  IAnimation,
 } from './component.interface';
 import { getDecoratorMap } from '../utils/decorator.util';
 import { NgClassDecorator } from '../utils/decorator-identifier.util';
@@ -25,8 +27,10 @@ import * as logger from './../utils/logger.util';
 export const collectComponentClassDecoratorMetadata = (
   node: ts.ClassDeclaration
 ): IComponentClassDecoratorMetadata => {
+  let animations;
   let changeDetection;
   let encapsulation;
+  let entryComponents;
   let interpolation;
   let moduleId;
   let preserveWhitespaces;
@@ -48,6 +52,10 @@ export const collectComponentClassDecoratorMetadata = (
         properties
       );
 
+      // animations
+      const animationsInitializer = decoratorProperties.get(ComponentDecoratorProperty.Animations);
+      animations = collectAnimationsMetadata(animationsInitializer);
+
       // changeDetection
       const changeDetectionInitializer = decoratorProperties.get(
         ComponentDecoratorProperty.ChangeDetection
@@ -59,6 +67,12 @@ export const collectComponentClassDecoratorMetadata = (
         ComponentDecoratorProperty.Encapsulation
       );
       encapsulation = collectEncapsulationMetadata(encapsulationInitializer);
+
+      // entryComponents
+      const entryComponentsInitializer = decoratorProperties.get(
+        ComponentDecoratorProperty.EntryComponents
+      );
+      entryComponents = collectEntryComponentsMetadata(entryComponentsInitializer);
 
       // interpolation
       const interpolationInitializer = decoratorProperties.get(
@@ -103,6 +117,7 @@ export const collectComponentClassDecoratorMetadata = (
   }
 
   return {
+    animations,
     changeDetection,
     encapsulation,
     moduleId,
@@ -113,6 +128,23 @@ export const collectComponentClassDecoratorMetadata = (
     templateUrl,
     viewProviders,
   };
+};
+
+const collectAnimationsMetadata = (
+  initializer: ts.Expression | undefined
+): IAnimation[] | undefined => {
+  if (initializer && ts.isArrayLiteralExpression(initializer)) {
+    return initializer.elements.map(
+      (animation: ts.Expression): IAnimation => {
+        const raw: string = `${ts.SyntaxKind[animation.kind]}: ${animation.getText()}`;
+        return {
+          raw,
+        } as IAnimation;
+      }
+    );
+  }
+
+  return;
 };
 
 const collectChangeDetectionMetadata = (
@@ -140,6 +172,24 @@ const collectEncapsulationMetadata = (
     initializer.expression.getText().trim() === VIEW_ENCAPSULATION
   ) {
     return initializer.name.getText() as ViewEncapsulation;
+  }
+
+  return;
+};
+
+// TODO (ryan): This needs to be further refined.
+const collectEntryComponentsMetadata = (
+  initializer: ts.Expression | undefined
+): IEntryComponent[] | undefined => {
+  if (initializer && ts.isArrayLiteralExpression(initializer)) {
+    return initializer.elements.map(
+      (element: ts.Expression): IEntryComponent => {
+        const raw: string = element.getText();
+        return {
+          raw,
+        } as IEntryComponent;
+      }
+    );
   }
 
   return;

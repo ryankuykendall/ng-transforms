@@ -3,7 +3,7 @@
 //   2. Add the remaining properties!
 
 export enum Property {
-  Animations = 'Animations',
+  Animations = 'animations',
   ChangeDetection = 'changeDetection',
   Encapsulation = 'encapsulation',
   EntryComponents = 'entryComponents',

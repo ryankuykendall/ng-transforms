@@ -1,6 +1,6 @@
 import ts from 'typescript';
 
-import { IComponentClassDecoratorMetadata, IProvider } from './component.interface';
+import { IComponentClassDecoratorMetadata, IProvider, ModuleIdType } from './component.interface';
 import { getDecoratorMap } from '../utils/decorator.util';
 import { NgClassDecorator } from '../utils/decorator-identifier.util';
 import { getObjectLiteralPropertiesAsMap } from '../utils/object-literal-expression.util';
@@ -22,6 +22,7 @@ export const collectComponentClassDecoratorMetadata = (
 ): IComponentClassDecoratorMetadata => {
   let changeDetection;
   let encapsulation;
+  let moduleId;
   let preserveWhitespaces;
   let template;
   let templateUrl;
@@ -52,6 +53,10 @@ export const collectComponentClassDecoratorMetadata = (
         ComponentDecoratorProperty.Encapsulation
       );
       encapsulation = collectEncapsulationMetadata(encapsulationInitializer);
+
+      // moduleId
+      const moduleIdInitializer = decoratorProperties.get(ComponentDecoratorProperty.ModuleId);
+      moduleId = collectModuleIdMetadata(moduleIdInitializer);
 
       // preserveWhitespaces
       const preserveWhitespacesInitializer = decoratorProperties.get(
@@ -88,6 +93,7 @@ export const collectComponentClassDecoratorMetadata = (
   return {
     changeDetection,
     encapsulation,
+    moduleId,
     preserveWhitespaces,
     styles,
     styleUrls,
@@ -122,6 +128,34 @@ const collectEncapsulationMetadata = (
     initializer.expression.getText().trim() === VIEW_ENCAPSULATION
   ) {
     return initializer.name.getText() as ViewEncapsulation;
+  }
+
+  return;
+};
+
+const collectModuleIdMetadata = (
+  initializer: ts.Expression | undefined
+): ModuleIdType | undefined => {
+  if (initializer) {
+    const COMMONJS_MODULE = 'module';
+    const COMMONJS_MODULE_ID = 'id';
+    const SYSTEMJS_MODULE_ID = '__moduleName';
+
+    if (ts.isPropertyAccessExpression(initializer)) {
+      // NOTE (ryan): This will only handle CommonJS
+      if (
+        initializer.expression.getText() === COMMONJS_MODULE &&
+        initializer.name.getText() === COMMONJS_MODULE_ID
+      ) {
+        return ModuleIdType.CommonJS;
+      }
+    }
+
+    if (ts.isIdentifier(initializer) && initializer.getText() === SYSTEMJS_MODULE_ID) {
+      return ModuleIdType.SystemJS;
+    }
+
+    logger.error('Unhandled initializer type collectModuleIdMetadata', initializer);
   }
 
   return;

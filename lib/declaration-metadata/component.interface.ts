@@ -74,6 +74,11 @@ export interface IContentChildrenMemberMetadata extends IHasIdentifier, IInGroup
 }
 export type ComponentAssetFilepath = string;
 
+export enum ModuleIdType {
+  CommonJS = 'CommonJS',
+  SystemJS = 'SystemJS',
+}
+
 // TODO (ryan): Update this to be more useful once we can track down a good example
 //   of where this is used (It is currently not used in Angular Material.)
 export interface IProvider {
@@ -83,6 +88,7 @@ export interface IProvider {
 export interface IComponentClassDecoratorMetadata {
   changeDetection?: ChangeDetectionStrategy;
   encapsulation?: ViewEncapsulation;
+  moduleId?: ModuleIdType;
   preserveWhitespaces?: boolean;
   styles?: string[];
   styleUrls?: ComponentAssetFilepath[];

@@ -109,23 +109,23 @@ More examples coming soon!
 ### Query an Angular Project for AST Sub Trees
 
 ```
-$ npm run cli ast-query "SourceFile > VariableStatement ArrowFunction" <directory> --ancestor VariableStatement
+$ npm run cli query "SourceFile > VariableStatement ArrowFunction" <directory> --ancestor VariableStatement
 ```
 
 In the specified directory, get all decorators with the name 'Component.' Then ascend the ancestry to the associated class declaration and display the results.
 
 ```
-$ npm run cli ast-query "Decorator[expression.expression.escapedText=Component]" <directory> --ancestor ClassDeclaration
+$ npm run cli query "Decorator[expression.expression.escapedText=Component]" <directory> --ancestor ClassDeclaration
 ```
 
 Same as above, but in this case getting ClassDeclarations with the Directive decorator:
 
 ```
-$ npm run cli ast-query "Decorator[expression.expression.escapedText=Directive]" <directory> --ancestor ClassDeclaration
+$ npm run cli query "Decorator[expression.expression.escapedText=Directive]" <directory> --ancestor ClassDeclaration
 ```
 
 And NgModules:
 
 ```
-$ npm run cli ast-query "Decorator[expression.expression.escapedText=NgModule]" <directory> --ancestor ClassDeclaration
+$ npm run cli query "Decorator[expression.expression.escapedText=NgModule]" <directory> --ancestor ClassDeclaration
 ```

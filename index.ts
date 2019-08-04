@@ -29,13 +29,20 @@ import logger from './lib/utils/logger.util';
 
 // Still need chalk in some cases until Command module refactor.
 import chalk from 'chalk';
-import * as glob from 'glob';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getRootMetadataStub } from './lib/declaration-metadata/root.metadata';
 
 /** COMMAND IMPORTS */
+import { action as dumpClassesAction } from './lib/commands/dump-classes.command';
+import { action as dumpEnumsAction } from './lib/commands/dump-enums.command';
 import { action as dumpImportsAction } from './lib/commands/dump-imports.command';
+import { action as dumpInterfacesAction } from './lib/commands/dump-interfaces.command';
+
+import { action as dumpComponentClassDecoratorsAction } from './lib/commands/dump-component-class-decorators.command';
+import { action as dumpDirectiveClassDecoratorsAction } from './lib/commands/dump-directive-class-decorators.command';
+import { action as dumpNgModuleClassDecoratorsAction } from './lib/commands/dump-ng-module-class-decorators.command';
+
 import { action as queryCommandAction } from './lib/commands/query.command';
 import { action as ngCreateComponentLookupAction } from './lib/commands/ng-create-component-lookup.command';
 
@@ -54,6 +61,7 @@ import {
 } from './lib/interfaces/ast-file.interface';
 
 const packageJSON = fileUtil.loadJSONFile('package.json');
+program.version(packageJSON.version);
 
 const printer: ts.Printer = ts.createPrinter({
   newLine: ts.NewLineKind.LineFeed,
@@ -197,8 +205,6 @@ const generateKeyPresentationFromOutputNode = (
   return keyPresentation.join('\n');
 };
 
-program.version(packageJSON.version);
-
 // TODO (ryan): Clean this file up by moving each of the command functions into their
 //   own files in lib/cli/command.
 program.command('dump <dir>').action((dir: string, cmd: program.Command) => {
@@ -215,64 +221,12 @@ program
   .action(queryCommandAction);
 
 program.command('dump-imports <dir>').action(dumpImportsAction);
-
-program.command('dump-classes <dir>').action((dir: string, cmd: program.Command) => {
-  const scanDirPath = path.join(process.cwd(), dir);
-  logger.info(`Scanning components in`, scanDirPath);
-
-  if (!fs.existsSync(scanDirPath)) {
-    logger.error(`Directory does note exist`, scanDirPath);
-  }
-
-  const tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
-  tsFiles.forEach((filepath: string) => {
-    const source = fs.readFileSync(filepath, fileUtil.UTF8);
-    const ast = tsquery.ast(source);
-    const nodes = tsquery(ast, `ClassDeclaration`);
-    nodes.forEach((node, index) => {
-      logger.newline(2);
-      logger.info(' - Processing file', filepath, '\n');
-      dumpASTNode(node, index);
-    });
-  });
-});
-
-program.command('dump-directives <dir>').action((dir: string, cmd: program.Command) => {
-  logger.info(`Scanning directives in ${dir}`);
-});
-
-program
-  .command('dump-component-class-decorators <dir>')
-  .action((dir: string, cmd: program.Command) => {
-    const scanDirPath = path.join(process.cwd(), dir);
-    logger.info(`Scanning component class decorators in ${dir}`);
-
-    if (!fs.existsSync(scanDirPath)) {
-      logger.error(`Directory does note exist`, scanDirPath);
-    }
-
-    const tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
-    tsFiles.forEach((filepath: string) => {
-      const source = fs.readFileSync(filepath, fileUtil.UTF8);
-      const ast = tsquery.ast(source);
-      const nodes = tsquery(ast, `ClassDeclaration Decorator[name.name="Component"]`);
-      nodes.forEach((node, index) => {
-        logger.newline(2);
-        logger.info(' - Processing file', filepath, '\n');
-        dumpASTNode(node, index);
-      });
-    });
-  });
-
-program
-  .command('dump-component-attribute-decorators <dir>')
-  .action((dir: string, cmd: program.Command) => {
-    logger.info(`Scanning component attribute decorators in ${dir}`);
-  });
-
-program.command('dump-interfaces <dir>').action((dir: string, cmd: program.Command) => {
-  logger.info(`Scanning interfaces in ${dir}`);
-});
+program.command('dump-classes <dir>').action(dumpClassesAction);
+program.command('dump-enums <dir>').action(dumpEnumsAction);
+program.command('dump-interfaces <dir>').action(dumpInterfacesAction);
+program.command('dump-directives <dir>').action(dumpDirectiveClassDecoratorsAction);
+program.command('dump-components <dir>').action(dumpComponentClassDecoratorsAction);
+program.command('dump-ng-modules <dir>').action(dumpNgModuleClassDecoratorsAction);
 
 program
   .command('component-transform-add-view-encapsulation-shadow-dom <dir>')
@@ -881,5 +835,11 @@ program
       logger.error('Metadata file does not exist', filepath);
     }
   });
+
+program
+  .command('ng-create-component-lookup <filepath>')
+  .option('-r --relative <relative>', 'Relative filepath to prune to for source files')
+  .description('Generate ')
+  .action(ngCreateComponentLookupAction);
 
 program.parse(process.argv);

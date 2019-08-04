@@ -29,4 +29,13 @@ export const newline = (count: number = 1) => {
   console.log('\n'.repeat(count));
 };
 
+export const logger = {
+  info,
+  success,
+  warn,
+  error,
+  newline,
+};
+
+export default logger;
 // TODO (ryan): Add a logging method for handling messages that include ts.Node arguments.

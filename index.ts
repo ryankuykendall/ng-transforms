@@ -9,7 +9,6 @@ import * as ct from './lib/component.transform';
 import * as cdt from './lib/transforms/components/component-decorator.transform';
 import * as compClassDecTrans from './lib/transforms/components/class-declaration.transform';
 import * as fileUtil from './lib/utils/file.util';
-import * as prettierUtil from './lib/utils/prettier.util';
 import * as aleUtil from './lib/utils/array-literal-expression.util';
 import * as oleUtil from './lib/utils/object-literal-expression.util';
 import { Property as cdProperty } from './lib/declaration-metadata/component-decorator.property';
@@ -26,7 +25,7 @@ import * as inlineResourceTransform from './lib/transforms/components/inline-res
 // TODO (ryan): Wrap-up chalk with console.log && console.error into a separate module
 //   (and likely a singleton) to control output velocity levels across command runs.
 //   Add verbosity level as an option to general command flags.
-import * as logger from './lib/utils/logger.util';
+import logger from './lib/utils/logger.util';
 
 // Still need chalk in some cases until Command module refactor.
 import chalk from 'chalk';
@@ -35,170 +34,28 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { getRootMetadataStub } from './lib/declaration-metadata/root.metadata';
 
+/** COMMAND IMPORTS */
+import { action as queryCommandAction } from './lib/commands/query.command';
+import { action as ngCreateComponentLookupAction } from './lib/commands/ng-create-component-lookup.command';
+import {
+  getTypescriptFileASTsFromDirectory,
+  dumpASTNode,
+  findFilesWithASTMatchingSelector,
+  generateTypescriptFromTransformationResults,
+  generateTypescriptFromSourceFileAST,
+} from './lib/utils/ast.util';
+import {
+  IFileAST,
+  NgAstSelector,
+  IFileTransformationResult,
+  IFileASTQueryMatch,
+} from './lib/interfaces/ast-file.interface';
+
 const packageJSON = fileUtil.loadJSONFile('package.json');
-
-const TS_NODE_BASE_ATTRS = new Set([
-  // from TextRange interface
-  'pos',
-  'end',
-  // from Node interface
-  'kind',
-  'flags',
-  'modifierFlagsCache',
-  'parent',
-  'transformFlags',
-]);
-
-const TS_FILE_EXTNAME = '.ts';
 
 const printer: ts.Printer = ts.createPrinter({
   newLine: ts.NewLineKind.LineFeed,
 });
-
-enum NgAstSelector {
-  ComponentDecoratorContainingTemplateUrl = "ClassDeclaration Decorator:has(Identifier[name='Component']) PropertyAssignment:has(Identifier[name='templateUrl']) StringLiteral",
-  ComponentDecoratorContainingStyleUrls = "ClassDeclaration Decorator:has(Identifier[name='Component']) PropertyAssignment:has(Identifier[name='styleUrls']) StringLiteral",
-  // For the following, would still need to backtrack to ImportDeclaration
-  NgImportComponentDecoratorFromCore = "ImportDeclaration:has(ImportClause:has(NamedImports ImportSpecifier Identifier[name='Component'])) StringLiteral[value=/@angular/][value=/core/]",
-  NgInterfaces = 'ClassDeclaration, InterfaceDeclaration, EnumDeclaration, SourceFile > FunctionDeclaration, SourceFile > ArrowFunction, SourceFile > TypeAliasDeclaration',
-  ComponentDecoratorOnClassDeclaration = "ClassDeclaration Decorator:has(Identifier[name='Component'])",
-  ImportDeclarationWithTestInModuleSpecifier = 'ImportDeclaration[moduleSpecifier.text=/test/]',
-  ComponentTemplateUrlTSQuery = "ClassDeclaration Decorator:has(CallExpression[expression.escapedText='Component']) PropertyAssignment[name.escapedText='templateUrl']",
-  ComponentStyleUrlsTSQuery = "ClassDeclaration Decorator:has(CallExpression[expression.escapedText='Component']) PropertyAssignment[name.escapedText='styleUrls']",
-}
-
-interface IFileAST {
-  filepath: string;
-  source: string;
-  ast: ts.SourceFile; // TODO (ryan): Rename this to sourceFile!!!
-  srcDirectory?: string;
-  buildDirectory?: string;
-  relativeDirname?: string;
-}
-
-interface IFileASTQueryMatch extends IFileAST {
-  matches: ts.Node[];
-}
-
-interface IFileTransformationResult extends IFileAST {
-  transformation: ts.TransformationResult<ts.SourceFile>;
-}
-
-const dumpASTNode = (node: ts.Node, index: number = 0, depth: number = 0, indent: number = 4) => {
-  const kind = ts.SyntaxKind[node.kind];
-  const summary = node
-    .getText()
-    .replace(/\n/g, ' ')
-    .substring(0, 32);
-  const attrs = Object.keys(node).filter(k => !TS_NODE_BASE_ATTRS.has(k));
-  if (ts.isIdentifier(node)) {
-    console.log(
-      `${index}.`.padStart(depth * indent, ' '),
-      chalk.yellow(kind),
-      chalk.bgBlueBright.black.bold(node.escapedText as string),
-      attrs.join(', ')
-    );
-  } else {
-    console.log(
-      `${index}.`.padStart(depth * indent, ' '),
-      chalk.yellow(kind),
-      attrs.join(', '),
-      summary
-    );
-  }
-  let childIndex = 0;
-  node.forEachChild((node: ts.Node) => {
-    dumpASTNode(node, childIndex, depth + 1, indent);
-    childIndex++;
-  });
-};
-
-const getTypescriptFileASTsFromDirectory = (dir: string): IFileAST[] => {
-  let scanDirPath = dir;
-  if (!path.isAbsolute(scanDirPath)) {
-    scanDirPath = path.join(process.cwd(), dir);
-  }
-
-  if (!fs.existsSync(scanDirPath)) {
-    logger.error(`Directory or file does not exist`, scanDirPath);
-  }
-
-  let tsFiles: string[] = [scanDirPath];
-  if (path.extname(scanDirPath) !== TS_FILE_EXTNAME) {
-    tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
-    logger.info(`Processing files in`, scanDirPath);
-  } else {
-    logger.info('Processing file', scanDirPath);
-  }
-
-  return tsFiles.map((filepath: string) => {
-    const source = fs.readFileSync(filepath, fileUtil.UTF8);
-    const ast = tsquery.ast(source);
-    return {
-      filepath,
-      source,
-      ast,
-    };
-  });
-};
-
-const findFilesWithASTMatchingSelector = (
-  tsFiles: IFileAST[],
-  selector: string
-): IFileASTQueryMatch[] => {
-  const result: IFileASTQueryMatch[] = [];
-
-  tsFiles.forEach(({ filepath, source, ast }, index) => {
-    const matches = tsquery(ast, selector);
-
-    if (matches.length > 0) {
-      result.push({
-        filepath,
-        source,
-        ast,
-        matches,
-      });
-    }
-  });
-
-  return result;
-};
-
-const generateTypescriptFromTransformationResults = (
-  results: IFileTransformationResult[],
-  pretty: boolean = false
-): string[] => {
-  return results.map(({ filepath, transformation }: IFileTransformationResult) => {
-    const updatedComponentSFAST = transformation.transformed[0];
-    const updatedFilepath = `${path.basename(filepath)}.element.ts`;
-    return generateTypescriptFromSourceFileAST(updatedComponentSFAST, updatedFilepath, pretty);
-  });
-};
-
-const generateTypescriptFromSourceFileAST = (
-  node: ts.SourceFile,
-  filepath: string,
-  pretty: boolean = false
-): string => {
-  // QUESTION (ryan): Is creating this new ts.SourceFile necessary?
-  // const updatedComponentSFAST = transformation.transformed[0];
-  const updatedSourceFile: ts.SourceFile = ts.createSourceFile(
-    filepath,
-    '',
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS
-  );
-  const updatedSource = ts
-    .createPrinter()
-    .printNode(ts.EmitHint.SourceFile, node, updatedSourceFile);
-
-  if (pretty) {
-    return prettierUtil.formatTypescript(updatedSource);
-  }
-
-  return updatedSource;
-};
 
 interface IOutputNode {
   label?: string;
@@ -355,21 +212,7 @@ program.command('dump <dir>').action((dir: string, cmd: program.Command) => {
 program
   .command('query <selector> <dir>')
   .option('-a --ancestor <ancestor>', 'Backtrack to first ancestor of SyntaxKind')
-  .action((selector: string, dir: string, cmd: program.Command) => {
-    const tsFiles = getTypescriptFileASTsFromDirectory(dir);
-    const tsFilesWithNodesMatchingSelector = findFilesWithASTMatchingSelector(tsFiles, selector);
-    const ancestor = cmd.opts()['ancestor'] || null;
-    tsFilesWithNodesMatchingSelector.forEach(({ filepath, matches }, fileIndex) => {
-      logger.newline(2);
-      logger.info(`Processing file`, filepath);
-      matches.forEach((node: ts.Node, index) => {
-        while (ancestor && node.parent && ts.SyntaxKind[node.kind] != ancestor) {
-          node = node.parent;
-        }
-        dumpASTNode(node, index);
-      });
-    });
-  });
+  .action(queryCommandAction);
 
 program.command('dump-imports <dir>').action((dir: string, cmd: program.Command) => {
   const scanDirPath = path.join(process.cwd(), dir);

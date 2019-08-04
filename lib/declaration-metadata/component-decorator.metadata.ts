@@ -22,7 +22,7 @@ import {
 } from './component-decorator.property';
 import { stripQuotes } from '../utils/string-literal.util';
 import { mapToArrayOfStrings } from '../utils/array-literal-expression.util';
-import * as logger from './../utils/logger.util';
+import logger from './../utils/logger.util';
 
 export const collectComponentClassDecoratorMetadata = (
   node: ts.ClassDeclaration

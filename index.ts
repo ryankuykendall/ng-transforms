@@ -35,8 +35,10 @@ import * as path from 'path';
 import { getRootMetadataStub } from './lib/declaration-metadata/root.metadata';
 
 /** COMMAND IMPORTS */
+import { action as dumpImportsAction } from './lib/commands/dump-imports.command';
 import { action as queryCommandAction } from './lib/commands/query.command';
 import { action as ngCreateComponentLookupAction } from './lib/commands/ng-create-component-lookup.command';
+
 import {
   getTypescriptFileASTsFromDirectory,
   dumpASTNode,
@@ -207,33 +209,12 @@ program.command('dump <dir>').action((dir: string, cmd: program.Command) => {
   });
 });
 
-// TODO (ryan): Improve usability/scannability by parsing node types from selector
-//   and then using them to highlight matching nodes in output.
 program
   .command('query <selector> <dir>')
   .option('-a --ancestor <ancestor>', 'Backtrack to first ancestor of SyntaxKind')
   .action(queryCommandAction);
 
-program.command('dump-imports <dir>').action((dir: string, cmd: program.Command) => {
-  const scanDirPath = path.join(process.cwd(), dir);
-  logger.info(`Scanning files in`, scanDirPath);
-
-  if (!fs.existsSync(scanDirPath)) {
-    logger.error(`Directory does note exist`, scanDirPath);
-  }
-
-  const tsFiles = glob.sync(`${scanDirPath}/**/*.ts`);
-  tsFiles.forEach((filepath: string) => {
-    const source = fs.readFileSync(filepath, fileUtil.UTF8);
-    const ast = tsquery.ast(source);
-    const nodes = tsquery(ast, `ImportDeclaration`);
-    nodes.forEach((node, index) => {
-      logger.newline(2);
-      logger.info(' - Processing file', filepath, '\n');
-      dumpASTNode(node, index);
-    });
-  });
-});
+program.command('dump-imports <dir>').action(dumpImportsAction);
 
 program.command('dump-classes <dir>').action((dir: string, cmd: program.Command) => {
   const scanDirPath = path.join(process.cwd(), dir);

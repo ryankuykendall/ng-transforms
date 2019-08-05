@@ -838,7 +838,8 @@ program
 
 program
   .command('ng-create-component-lookup <filepath>')
-  .option('-r --relative <relative>', 'Relative filepath to prune to for source files')
+  .option('-o --output <output>', 'Output filepath to write lookup to.')
+  .option('-r --relative <relative>', 'Relative filepath to use to prune source filepath')
   .description('Generate ')
   .action(ngCreateComponentLookupAction);
 

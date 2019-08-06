@@ -1,7 +1,9 @@
+import ts from 'typescript';
 import { IHasFilepath, IHasIdentifier } from './base.interface';
 import { IMethodBase } from './method.interface';
 import { IType } from './type.interface';
 import { MemberModifier } from './base.metadata';
+import { NodeDecoratorMap } from '../utils/decorator.util';
 
 export interface IHeritageMetadata {
   extendsDef?: IType;
@@ -32,6 +34,28 @@ export enum ClassMetadataGroup {
 
 export interface IInGroup {
   in: ClassMetadataGroup;
+}
+
+export type ClassMemberType =
+  | ts.ConstructorDeclaration
+  | ts.PropertyDeclaration
+  | ts.MethodDeclaration
+  | ts.GetAccessorDeclaration
+  | ts.SetAccessorDeclaration;
+
+export interface IMember extends IHasIdentifier, IInGroup {
+  member: ClassMemberType;
+  decorators: NodeDecoratorMap;
+}
+
+export interface IMemberDistribution {
+  constructorNode?: ts.ConstructorDeclaration;
+  properties: ts.PropertyDeclaration[];
+  functions: ts.PropertyDeclaration[];
+  methods: ts.MethodDeclaration[];
+  getAccessors: ts.GetAccessorDeclaration[];
+  setAccessors: ts.SetAccessorDeclaration[];
+  unknownDistribution: string[];
 }
 
 export interface IClassMetadata extends IHasIdentifier, IHasFilepath {

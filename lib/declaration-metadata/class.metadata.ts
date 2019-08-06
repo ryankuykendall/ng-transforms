@@ -10,12 +10,13 @@ import {
   IConstructorMetadata,
   IHeritageMetadata,
   IInGroup,
+  IMemberDistribution,
   ClassMetadataGroup,
+  IMember,
 } from './class.interface';
 import { getMethodMetadata, getMethodMetadataStub } from './method.metadata';
 import { getTypeCompositionFromNode } from './type.metadata';
-import { IHasIdentifier } from './base.interface';
-import { NodeDecoratorMap, getDecoratorMap } from '../utils/decorator.util';
+import { getDecoratorMap } from '../utils/decorator.util';
 import { collectMemberModifiers } from './base.metadata';
 import { collectExpressionMetadata } from './expression.metadata';
 
@@ -49,16 +50,6 @@ export const collectClassMetadata = (
     setters,
   };
 };
-
-interface IMemberDistribution {
-  constructorNode?: ts.ConstructorDeclaration;
-  properties: ts.PropertyDeclaration[];
-  functions: ts.PropertyDeclaration[];
-  methods: ts.MethodDeclaration[];
-  getAccessors: ts.GetAccessorDeclaration[];
-  setAccessors: ts.SetAccessorDeclaration[];
-  unknownDistribution: string[];
-}
 
 const collectHeritageMetadata = (node: ts.ClassDeclaration): IHeritageMetadata | undefined => {
   if (node.heritageClauses) {
@@ -211,17 +202,6 @@ const collectSetAccessorMetadata = (accessor: ts.SetAccessorDeclaration): ISetAc
     ...methodMetadata,
   };
 };
-
-export type ClassMemberType =
-  | ts.ConstructorDeclaration
-  | ts.PropertyDeclaration
-  | ts.MethodDeclaration
-  | ts.GetAccessorDeclaration
-  | ts.SetAccessorDeclaration;
-export interface IMember extends IHasIdentifier, IInGroup {
-  member: ClassMemberType;
-  decorators: NodeDecoratorMap;
-}
 
 export const getMemberDistributionWithIdentifiersAndGroups = (
   node: ts.ClassDeclaration

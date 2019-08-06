@@ -1,5 +1,6 @@
 import { IClassMetadata } from './class.interface';
 import * as CSSWhat from 'css-what';
+import { IAngularCoreClassMemberMetadata } from './angular-core.interface';
 
 export interface ISelectorSet {
   raw: string;
@@ -16,6 +17,9 @@ export interface IDirectiveClassDecoratorMetadata {
   exportAs?: string;
 }
 
-export interface IDirectiveMetadata extends IClassMetadata, IDirectiveClassDecoratorMetadata {
-  ngTemplate: string;
+export interface IDirectiveMetadata
+  extends IClassMetadata,
+    IDirectiveClassDecoratorMetadata,
+    IAngularCoreClassMemberMetadata {
+  ngTemplate: string[];
 }

@@ -2,6 +2,9 @@ import ts from 'typescript';
 import { Property as NgModuleDecoratorProperty } from './ng-module-decorator.property';
 import { INgModuleClassDecoratorMetadata } from './ng-module.interface';
 import { getObjectLiteralPropertiesAsMap } from '../utils/object-literal-expression.util';
+import { IExportMetadata, IImportMetadata } from './ng-module-decorator.interface';
+import { collectExpressionMetadata } from './expression.metadata';
+import { ExpressionMetadata } from './expression.interface';
 
 export const collectNgModuleDecoratorMetadata = (
   decorator: ts.Decorator | undefined
@@ -46,11 +49,11 @@ export const collectNgModuleDecoratorMetadata = (
 
       // exports
       const exportsInitializer = decoratorProperties.get(NgModuleDecoratorProperty.Exports);
-      exports = collectInitializerMetadataAsString(exportsInitializer);
+      exports = collectExportsMetadata(exportsInitializer);
 
       // imports
       const importsInitializer = decoratorProperties.get(NgModuleDecoratorProperty.Imports);
-      imports = collectInitializerMetadataAsString(importsInitializer);
+      imports = collectImportsMetadata(importsInitializer);
 
       // providers
       const providersInitializer = decoratorProperties.get(NgModuleDecoratorProperty.Providers);
@@ -81,6 +84,48 @@ const collectInitializerMetadataAsString = (
 ): string | undefined => {
   if (initializer) {
     return initializer.getText();
+  }
+
+  return;
+};
+
+const collectAsArrayOfExpressionMetadata = (node: ts.Expression): ExpressionMetadata[] => {
+  let expressions: ExpressionMetadata[] = [];
+  if (ts.isArrayLiteralExpression(node)) {
+    // NOTE (ryan): This might be relying too much on Angular of passing an
+    //   array of identifiers, but we can use a post processing step to expand
+    //   items in the else case.
+    expressions = node.elements.map(
+      (childExp: ts.Expression): ExpressionMetadata => {
+        return collectExpressionMetadata(childExp);
+      }
+    );
+  } else {
+    expressions = [collectExpressionMetadata(node)];
+  }
+
+  return expressions;
+};
+
+const collectExportsMetadata = (
+  initializer: ts.Expression | undefined
+): IExportMetadata | undefined => {
+  if (initializer) {
+    return {
+      expressions: collectAsArrayOfExpressionMetadata(initializer),
+    };
+  }
+
+  return;
+};
+
+const collectImportsMetadata = (
+  initializer: ts.Expression | undefined
+): IImportMetadata | undefined => {
+  if (initializer) {
+    return {
+      expressions: collectAsArrayOfExpressionMetadata(initializer),
+    };
   }
 
   return;

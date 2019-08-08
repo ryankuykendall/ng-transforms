@@ -1,6 +1,6 @@
 import ts, { TsConfigSourceFile } from 'typescript';
-import { IType } from './type.interface';
-import { BasicType, DataType } from './base.metadata';
+import { IType, ITypeMember } from './type.interface';
+import { BasicType, DataType, ObjectType } from './base.metadata';
 import chalk from 'chalk';
 import {
   INewExpression,
@@ -11,6 +11,7 @@ import {
 } from './expression.interface';
 import { getExpressionIdentifier, getName, INameableProxy } from '../utils/identifier.util';
 import { collectTypeArgumentMetadata } from './type.metadata';
+import { getPropertyAsExpression } from '../utils/object-literal-expression.util';
 
 // TODO (ryan): Break each case into a separate method.
 export const collectExpressionMetadata = (
@@ -20,6 +21,8 @@ export const collectExpressionMetadata = (
 ): ExpressionMetadata => {
   switch (expression.kind) {
     // Keep the cases sorted by SyntaxKind!
+    case ts.SyntaxKind.AsExpression:
+      return getAsExpressionMetadata(expression as ts.AsExpression);
     case ts.SyntaxKind.CallExpression:
       return getCallExpressionMetadata(expression as ts.CallExpression);
     case ts.SyntaxKind.FalseKeyword:
@@ -28,6 +31,8 @@ export const collectExpressionMetadata = (
       return getIdentifierMetadata(expression as ts.Identifier);
     case ts.SyntaxKind.NewExpression:
       return getNewExpressionMetadata(expression as ts.NewExpression);
+    case ts.SyntaxKind.ObjectLiteralExpression:
+      return getObjectLiteralExpressionMetadata(expression as ts.ObjectLiteralExpression);
     case ts.SyntaxKind.PropertyAccessExpression:
       return getPropertyAccessExpressionMetadata(expression as ts.PropertyAccessExpression);
     case ts.SyntaxKind.StringLiteral:
@@ -48,6 +53,23 @@ export const collectExpressionMetadata = (
     args: [],
     literal: expression.getText(),
   } as IType;
+};
+
+const getAsExpressionMetadata = (expression: ts.AsExpression): IType => {
+  // TODO (ryan): Finish this...example of what needs to be handled is here:
+  /**
+   {
+      provide: MAT_CHIPS_DEFAULT_OPTIONS,
+      useValue: {
+        separatorKeyCodes: [ENTER]
+      } as MatChipsDefaultOptions
+    }
+   * 
+   */
+  return {
+    type: BasicType.CastAs,
+    literal: expression.getText(),
+  };
 };
 
 // TODO (ryan): Finish this...
@@ -98,6 +120,34 @@ const getNewExpressionMetadata = (expression: ts.NewExpression): INewExpression 
     expressionType: ExpressionMetadataType.New,
     type,
     args,
+  };
+};
+
+const getObjectLiteralExpressionMetadata = (expression: ts.ObjectLiteralExpression): IType => {
+  let members: ITypeMember[] | undefined;
+  expression.properties.forEach((property: ts.ObjectLiteralElementLike) => {
+    if (ts.isPropertyAssignment(property)) {
+      if (!members) {
+        members = [];
+      }
+      const key: IType = {
+        type: BasicType.String,
+        literal: property.name.getText(),
+      };
+      const value = collectExpressionMetadata(property.initializer);
+      members.push({
+        key,
+        value,
+      });
+    } else {
+      console.warn('Unhandled ts.ObjectExpressionLiteralLike', property.getText());
+    }
+  });
+
+  return {
+    type: ObjectType.Object,
+    members,
+    literal: expression.getText(),
   };
 };
 

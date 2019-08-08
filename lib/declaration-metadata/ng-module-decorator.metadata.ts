@@ -2,7 +2,12 @@ import ts from 'typescript';
 import { Property as NgModuleDecoratorProperty } from './ng-module-decorator.property';
 import { INgModuleClassDecoratorMetadata } from './ng-module.interface';
 import { getObjectLiteralPropertiesAsMap } from '../utils/object-literal-expression.util';
-import { IExportMetadata, IImportMetadata } from './ng-module-decorator.interface';
+import {
+  IExportMetadata,
+  IImportMetadata,
+  IProviderMetadata,
+  IEntryComponentsMetadata,
+} from './ng-module-decorator.interface';
 import { collectExpressionMetadata } from './expression.metadata';
 import { ExpressionMetadata } from './expression.interface';
 
@@ -45,7 +50,7 @@ export const collectNgModuleDecoratorMetadata = (
       const entryComponentsInitializer = decoratorProperties.get(
         NgModuleDecoratorProperty.EntryComponents
       );
-      entryComponents = collectInitializerMetadataAsString(entryComponents);
+      entryComponents = collectEntryComponentsMetadata(entryComponents);
 
       // exports
       const exportsInitializer = decoratorProperties.get(NgModuleDecoratorProperty.Exports);
@@ -57,7 +62,7 @@ export const collectNgModuleDecoratorMetadata = (
 
       // providers
       const providersInitializer = decoratorProperties.get(NgModuleDecoratorProperty.Providers);
-      providers = collectInitializerMetadataAsString(providersInitializer);
+      providers = collectProvidersMetadata(providersInitializer);
 
       // schemas
       const schemasInitializer = decoratorProperties.get(NgModuleDecoratorProperty.Schemas);
@@ -107,6 +112,18 @@ const collectAsArrayOfExpressionMetadata = (node: ts.Expression): ExpressionMeta
   return expressions;
 };
 
+const collectEntryComponentsMetadata = (
+  initializer: ts.Expression | undefined
+): IEntryComponentsMetadata | undefined => {
+  if (initializer) {
+    return {
+      expressions: collectAsArrayOfExpressionMetadata(initializer),
+    };
+  }
+
+  return;
+};
+
 const collectExportsMetadata = (
   initializer: ts.Expression | undefined
 ): IExportMetadata | undefined => {
@@ -122,6 +139,18 @@ const collectExportsMetadata = (
 const collectImportsMetadata = (
   initializer: ts.Expression | undefined
 ): IImportMetadata | undefined => {
+  if (initializer) {
+    return {
+      expressions: collectAsArrayOfExpressionMetadata(initializer),
+    };
+  }
+
+  return;
+};
+
+const collectProvidersMetadata = (
+  initializer: ts.Expression | undefined
+): IProviderMetadata | undefined => {
   if (initializer) {
     return {
       expressions: collectAsArrayOfExpressionMetadata(initializer),

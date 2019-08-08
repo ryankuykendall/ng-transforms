@@ -4,6 +4,7 @@ import chalk from 'chalk';
 export enum BasicType {
   Any = 'any',
   Boolean = 'boolean',
+  CastAs = 'cast-as',
   Enum = 'enum',
   Function = 'function',
   Intersection = 'intersection',

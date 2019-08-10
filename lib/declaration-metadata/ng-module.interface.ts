@@ -1,19 +1,22 @@
 import { IClassMetadata } from './class.interface';
 import {
-  IImportMetadata,
-  IExportMetadata,
-  IProviderMetadata,
+  IImportsMetadata,
+  IExportsMetadata,
+  IProvidersMetadata,
   IEntryComponentsMetadata,
+  IBootstrapMetadata,
+  IDeclarationsMetadata,
+  ISchemasMetadata,
 } from './ng-module-decorator.interface';
 
 export interface INgModuleClassDecoratorMetadata {
   id?: string;
-  bootstrap?: string;
-  declarations?: string;
+  bootstrap?: IBootstrapMetadata;
+  declarations?: IDeclarationsMetadata;
   entryComponents?: IEntryComponentsMetadata;
-  exports?: IExportMetadata;
-  imports?: IImportMetadata;
-  providers?: IProviderMetadata;
-  schemas?: string;
+  exports?: IExportsMetadata;
+  imports?: IImportsMetadata;
+  providers?: IProvidersMetadata;
+  schemas?: ISchemasMetadata;
 }
 export interface INgModuleMetadata extends IClassMetadata, INgModuleClassDecoratorMetadata {}

@@ -13,6 +13,8 @@ export enum BasicType {
   Number = 'number',
   Parenthesized = 'parenthesized',
   String = 'string',
+  Template = 'template',
+  ThisKeyword = 'this-keyword',
   Undefined = 'undefined',
   Union = 'union',
   Unknown = '[unknown]',

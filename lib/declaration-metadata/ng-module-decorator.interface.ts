@@ -1,17 +1,17 @@
 import { ExpressionMetadata } from './expression.interface';
 
 export interface IEntryComponentsMetadata {
-  expressions: ExpressionMetadata[];
+  expression: ExpressionMetadata;
 }
 
 export interface IExportMetadata {
-  expressions: ExpressionMetadata[];
+  expression: ExpressionMetadata;
 }
 
 export interface IImportMetadata {
-  expressions: ExpressionMetadata[];
+  expression: ExpressionMetadata;
 }
 
 export interface IProviderMetadata {
-  expressions: ExpressionMetadata[];
+  expression: ExpressionMetadata;
 }

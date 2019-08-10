@@ -21,22 +21,32 @@ export const collectExpressionMetadata = (
 ): ExpressionMetadata => {
   switch (expression.kind) {
     // Keep the cases sorted by SyntaxKind!
+    case ts.SyntaxKind.ArrayLiteralExpression:
+      return getArrayLiteralExpressionMetadata(expression as ts.ArrayLiteralExpression);
     case ts.SyntaxKind.AsExpression:
       return getAsExpressionMetadata(expression as ts.AsExpression);
     case ts.SyntaxKind.CallExpression:
       return getCallExpressionMetadata(expression as ts.CallExpression);
     case ts.SyntaxKind.FalseKeyword:
       return getFalseKeywordMetadata();
+    case ts.SyntaxKind.FirstLiteralToken:
+      return getFirstLiteralTokenMetadata(expression);
     case ts.SyntaxKind.Identifier:
       return getIdentifierMetadata(expression as ts.Identifier);
     case ts.SyntaxKind.NewExpression:
       return getNewExpressionMetadata(expression as ts.NewExpression);
+    case ts.SyntaxKind.NullKeyword:
+      return getNullKeywordMetadata();
     case ts.SyntaxKind.ObjectLiteralExpression:
       return getObjectLiteralExpressionMetadata(expression as ts.ObjectLiteralExpression);
     case ts.SyntaxKind.PropertyAccessExpression:
       return getPropertyAccessExpressionMetadata(expression as ts.PropertyAccessExpression);
     case ts.SyntaxKind.StringLiteral:
       return getStringLiteralMetadata(expression);
+    case ts.SyntaxKind.TemplateExpression:
+      return getTemplateExpressionMetadata(expression as ts.TemplateExpression);
+    case ts.SyntaxKind.ThisKeyword:
+      return getThisKeywordMetadata();
     case ts.SyntaxKind.TrueKeyword:
       return getTrueKeywordMetadata();
     default:
@@ -49,10 +59,25 @@ export const collectExpressionMetadata = (
   }
 
   return {
-    type: BasicType.Unknown,
+    type: `${BasicType.Unknown}: ${ts.SyntaxKind[expression.kind]}`,
     args: [],
     literal: expression.getText(),
   } as IType;
+};
+
+const getArrayLiteralExpressionMetadata = (expression: ts.ArrayLiteralExpression): IType => {
+  const members: ITypeMember[] = expression.elements.map(
+    (element: ts.Expression): ITypeMember => {
+      return {
+        value: collectExpressionMetadata(element),
+      };
+    }
+  );
+
+  return {
+    type: ObjectType.Array,
+    members,
+  };
 };
 
 const getAsExpressionMetadata = (expression: ts.AsExpression): IType => {
@@ -85,6 +110,13 @@ const getFalseKeywordMetadata = (): IType => {
   return {
     type: BasicType.Boolean,
     literal: false,
+  };
+};
+
+const getFirstLiteralTokenMetadata = (expression: ts.Expression): IType => {
+  return {
+    type: BasicType.Number,
+    literal: parseInt(expression.getText(), 10),
   };
 };
 
@@ -123,13 +155,16 @@ const getNewExpressionMetadata = (expression: ts.NewExpression): INewExpression 
   };
 };
 
+const getNullKeywordMetadata = (): IType => {
+  return {
+    type: BasicType.Null,
+  };
+};
+
 const getObjectLiteralExpressionMetadata = (expression: ts.ObjectLiteralExpression): IType => {
-  let members: ITypeMember[] | undefined;
+  const members: ITypeMember[] = [];
   expression.properties.forEach((property: ts.ObjectLiteralElementLike) => {
     if (ts.isPropertyAssignment(property)) {
-      if (!members) {
-        members = [];
-      }
       const key: IType = {
         type: BasicType.String,
         literal: property.name.getText(),
@@ -147,7 +182,6 @@ const getObjectLiteralExpressionMetadata = (expression: ts.ObjectLiteralExpressi
   return {
     type: ObjectType.Object,
     members,
-    literal: expression.getText(),
   };
 };
 
@@ -167,6 +201,19 @@ const getStringLiteralMetadata = (expression: ts.Expression): IType => {
   return {
     type: BasicType.String,
     literal: expression.getText(),
+  } as IType;
+};
+
+const getTemplateExpressionMetadata = (expression: ts.TemplateExpression): IType => {
+  return {
+    type: BasicType.Template,
+    literal: expression.getText(),
+  } as IType;
+};
+
+const getThisKeywordMetadata = (): IType => {
+  return {
+    type: BasicType.ThisKeyword,
   } as IType;
 };
 

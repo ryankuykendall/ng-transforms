@@ -123,7 +123,7 @@ export const collectHostElementBindingMetadata = (
 export const collectInputsMetadata = (initializer: ts.Expression | undefined): string[] => {
   if (initializer && ts.isArrayLiteralExpression(initializer)) {
     return (initializer as ts.ArrayLiteralExpression).elements.map((element: ts.Expression) => {
-      console.log(' - Input element', element.getText());
+      // console.log(' - Input element', element.getText());
       // TODO (ryan): These need to be more finely parsed to accommodate the remapping of identifier
       //   to the attribute representation "'matTreeNodeDefWhen'" vs. "'when: matTreeNodeDefWhen'"
       return element.getText();

@@ -94,30 +94,12 @@ const collectInitializerMetadataAsString = (
   return;
 };
 
-const collectAsArrayOfExpressionMetadata = (node: ts.Expression): ExpressionMetadata[] => {
-  let expressions: ExpressionMetadata[] = [];
-  if (ts.isArrayLiteralExpression(node)) {
-    // NOTE (ryan): This might be relying too much on Angular of passing an
-    //   array of identifiers, but we can use a post processing step to expand
-    //   items in the else case.
-    expressions = node.elements.map(
-      (childExp: ts.Expression): ExpressionMetadata => {
-        return collectExpressionMetadata(childExp);
-      }
-    );
-  } else {
-    expressions = [collectExpressionMetadata(node)];
-  }
-
-  return expressions;
-};
-
 const collectEntryComponentsMetadata = (
   initializer: ts.Expression | undefined
 ): IEntryComponentsMetadata | undefined => {
   if (initializer) {
     return {
-      expressions: collectAsArrayOfExpressionMetadata(initializer),
+      expression: collectExpressionMetadata(initializer),
     };
   }
 
@@ -129,7 +111,7 @@ const collectExportsMetadata = (
 ): IExportMetadata | undefined => {
   if (initializer) {
     return {
-      expressions: collectAsArrayOfExpressionMetadata(initializer),
+      expression: collectExpressionMetadata(initializer),
     };
   }
 
@@ -141,7 +123,7 @@ const collectImportsMetadata = (
 ): IImportMetadata | undefined => {
   if (initializer) {
     return {
-      expressions: collectAsArrayOfExpressionMetadata(initializer),
+      expression: collectExpressionMetadata(initializer),
     };
   }
 
@@ -153,7 +135,7 @@ const collectProvidersMetadata = (
 ): IProviderMetadata | undefined => {
   if (initializer) {
     return {
-      expressions: collectAsArrayOfExpressionMetadata(initializer),
+      expression: collectExpressionMetadata(initializer),
     };
   }
 

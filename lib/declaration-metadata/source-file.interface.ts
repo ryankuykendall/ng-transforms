@@ -1,5 +1,6 @@
 import { IHasFilepath } from './base.interface';
+import { IImportDeclarationMetadata } from './import-declaration.interface';
 
-// TODO (ryan): Define the interface for import declarations!
-
-export interface ISourceFileMetadata extends IHasFilepath {}
+export interface ISourceFileMetadata extends IHasFilepath {
+  importDeclarations: IImportDeclarationMetadata[];
+}

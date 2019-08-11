@@ -20,6 +20,8 @@ import { IRootMetadata, RootCollectorCallbackType, RootType } from './root.inter
 import { rootCollectorCallback } from './root.metadata';
 import { ITypeAliasMetadata } from './type-aliases.interface';
 import { collectTypeAliasMetadata } from './type-aliases.metadata';
+import { ISourceFileMetadata } from './source-file.interface';
+import { collectSourceFileMetadata } from './source-file.metadata';
 
 export { IRootMetadata, rootCollectorCallback };
 
@@ -63,9 +65,16 @@ export function collectMetadata<T extends ts.Node>(
         callback.call(null, interfaces, RootType.Interfaces, metadata);
       }
 
+      // Collect TypeAliases
       if (ts.isTypeAliasDeclaration(node)) {
         const metadata: ITypeAliasMetadata = collectTypeAliasMetadata(node, filepath);
         callback.call(null, interfaces, RootType.TypeAliases, metadata);
+      }
+
+      // Collect Source files with ImportDeclarations
+      if (ts.isSourceFile(node)) {
+        const metadata: ISourceFileMetadata = collectSourceFileMetadata(node, filepath);
+        callback.call(null, interfaces, RootType.SourceFiles, metadata);
       }
 
       return ts.visitEachChild(node, child => visit(child), context);

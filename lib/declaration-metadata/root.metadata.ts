@@ -15,6 +15,7 @@ export const getRootMetadataStub = (): IRootMetadata => {
   };
 };
 
+// QUESTOIN (ryan): Should this use a Generic instead?
 export const rootCollectorCallback = (
   root: IRootMetadata,
   type: RootType,

@@ -1,6 +1,8 @@
 import ts from 'typescript';
 import chalk from 'chalk';
 
+export const DEFAULT_MODULE_EXPORT_IDENTIFIER = '[default-export]';
+
 export enum BasicType {
   Any = 'any',
   Boolean = 'boolean',
@@ -26,6 +28,18 @@ export enum ObjectType {
   Map = 'Map',
   Object = 'Object',
   Set = 'Set',
+}
+
+// TODO (ryan): These should map closely to the RootTypes so that it easier
+//   to do lookups between exportStatements and RootTypes.
+export enum StatementType {
+  Class = 'class',
+  Enum = 'enum',
+  Function = 'function',
+  Import = 'import',
+  Interface = 'interface',
+  Variable = 'variable',
+  TypeAlias = 'type-alias',
 }
 
 export enum ObservableType {

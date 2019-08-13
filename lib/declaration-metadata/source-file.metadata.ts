@@ -1,11 +1,14 @@
-import ts, { Statement } from 'typescript';
-import fs, { stat } from 'fs';
+import ts from 'typescript';
+import fs from 'fs';
 import path from 'path';
 import { ISourceFileMetadata, IExportStatement } from './source-file.interface';
-import { IImportDeclarationMetadata, ModuleResolution } from './import-declaration.interface';
+import {
+  IImportDeclarationMetadata,
+  ModuleResolution,
+  INamedBinding,
+} from './import-declaration.interface';
 import { stripQuotes } from '../utils/string-literal.util';
-import { IType } from './type.interface';
-import { BasicType, StatementType, DEFAULT_MODULE_EXPORT_IDENTIFIER } from './base.metadata';
+import { StatementType, DEFAULT_MODULE_EXPORT_IDENTIFIER } from './base.metadata';
 
 const TYPESCRIPT_FILE_EXTENSION = 'ts';
 
@@ -55,13 +58,14 @@ const collectImportDeclarationMetadata = (
     moduleResolution = ModuleResolution.NodeModules;
     nodeModule = moduleSpecifier;
   }
+  const namedBindings: INamedBinding[] = collectNamedBindingsMetadata(node);
 
   return {
-    raw: node.getText(),
     moduleSpecifier,
     moduleResolution,
     filepath,
     nodeModule,
+    namedBindings,
   };
 };
 
@@ -107,6 +111,38 @@ const collectExportStatementsMetadata = (statement: ts.Node): IExportStatement =
     exportType,
     raw,
   };
+};
+
+const collectNamedBindingsMetadata = (declaration: ts.ImportDeclaration): INamedBinding[] => {
+  const bindings: INamedBinding[] = [];
+
+  if (declaration.importClause) {
+    const { namedBindings } = declaration.importClause;
+    if (namedBindings) {
+      switch (namedBindings.kind) {
+        case ts.SyntaxKind.NamespaceImport:
+          bindings.push({
+            identifier: namedBindings.name.getText(),
+          });
+          break;
+        case ts.SyntaxKind.NamedImports:
+          namedBindings.elements.forEach((element: ts.ImportSpecifier) => {
+            const propertyIdentifier = element.propertyName && element.propertyName.getText();
+            bindings.push({
+              identifier: element.name.getText(),
+              propertyIdentifier,
+            });
+          });
+          break;
+      }
+    }
+  } else {
+    bindings.push({
+      identifier: `[MISSING ImportClause] ${declaration.getText()}`,
+    });
+  }
+
+  return bindings;
 };
 
 // TODO (ryan): Consolidate these into a reusable method.

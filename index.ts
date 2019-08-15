@@ -45,6 +45,7 @@ import { action as dumpNgModuleClassDecoratorsAction } from './lib/commands/dump
 
 import { action as queryCommandAction } from './lib/commands/query.command';
 import { action as ngCreateComponentLookupAction } from './lib/commands/ng-create-component-lookup.command';
+import { action as ngGenerateModuleAction } from './lib/commands/ng-generate-module.command';
 
 import {
   getTypescriptFileASTsFromDirectory,
@@ -840,7 +841,24 @@ program
   .command('ng-create-component-lookup <filepath>')
   .option('-o --output <output>', 'Output filepath to write lookup to.')
   .option('-r --relative <relative>', 'Relative filepath to use to prune source filepath')
-  .description('Generate ')
+  .description(
+    'Generate lookup between Directive and Component selectors and their class definitions'
+  )
   .action(ngCreateComponentLookupAction);
+
+program
+  .command('ng-generate-module <filepath>')
+  .option(
+    '-s --module-stub <module-stub-filepath>',
+    'The module stub file to use as a starting point'
+  )
+  .option('-o --output <output>', 'Output filepath to write lookup to.')
+  .option('-r --relative <relative>', 'Relative filepath to use to prune absolute source filepath')
+  .option('-m --import-modules', 'Import all modules from metadata file')
+  .option('-d --import-directives', 'Import all directives from metadata file')
+  .option('-c --import-components', 'Import all components from metadata file')
+  .option('-a --import-all', 'Import all modules, directives, and components from metadata file')
+  .description('Generate NgModule from a collection of components and directives')
+  .action(ngGenerateModuleAction);
 
 program.parse(process.argv);

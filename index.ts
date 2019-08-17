@@ -539,9 +539,6 @@ program
     });
   });
 
-// TODOs (ryan):
-//   1. Move the key and query functions out into ./lib/
-//   2. Clean-up JSON Query Select Function into ./lib/
 program
   .command('ng-metadata-collect <dir>')
   .option('-o --output <output>', 'Output file name for metadata file')

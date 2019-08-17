@@ -43,6 +43,7 @@ import { action as dumpDirectiveClassDecoratorsAction } from './lib/commands/dum
 import { action as dumpNgModuleClassDecoratorsAction } from './lib/commands/dump-ng-module-class-decorators.command';
 
 import { action as queryCommandAction } from './lib/commands/query.command';
+import { action as ngMetadataKeyAction } from './lib/commands/ng-metadata-key.command';
 import { action as ngMetadataQueryAction } from './lib/commands/ng-metadata-query.command';
 import { action as ngCreateComponentLookupAction } from './lib/commands/ng-create-component-lookup.command';
 import { action as ngGenerateModuleAction } from './lib/commands/ng-generate-module.command';
@@ -737,37 +738,7 @@ program
   .description(
     'Generates an abbreviated interface key to facility the use of json-query syntax in ng-metadata-query command.'
   )
-  .action((filepath: string, cmd: program.Command) => {
-    const outputFile = cmd.opts()['output'] || null;
-    const maxDepth: number = cmd.opts()['depth'] ? parseInt(cmd.opts()['depth'], 10) : Infinity;
-    const indentLevel: number = cmd.opts()['indent']
-      ? parseInt(cmd.opts()['indent'], 10)
-      : DEFAULT_KEY_INDENT;
-
-    if (fs.existsSync(filepath)) {
-      const raw = fs.readFileSync(filepath, fileUtil.UTF8);
-      const metadata = JSON.parse(raw);
-      logger.success('Output key');
-      const key = generateKeyFromData(metadata);
-      // console.log(JSON.stringify(key, null, 2));
-
-      // const keyPresentation = generateKeyPresentationFromOutputNode(key);
-      // console.log(chalk.bgGreen.black('Output key presentation'));
-      // console.log(keyPresentation);
-
-      const trie = generateTrieFromKeyData(key);
-      const triePresentation = generateKeyPresentationFromTrie(trie, maxDepth, indentLevel);
-
-      if (outputFile) {
-        fs.writeFileSync(outputFile, triePresentation);
-        logger.success('Saving metadata file key to', outputFile);
-      } else {
-        console.log(triePresentation, null, 2);
-      }
-    } else {
-      logger.error('Metadata file does not exist', filepath);
-    }
-  });
+  .action(ngMetadataKeyAction);
 
 program
   .command('ng-metadata-query <query> <filepath>')

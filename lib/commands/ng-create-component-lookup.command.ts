@@ -26,7 +26,9 @@ interface LookupSummaryItem extends LookupItem {
 
 export const action = (filepath: string, cmd: program.Command) => {
   const resolvedFilepath: string = path.resolve(filepath);
-  const outputFilepath = cmd.opts()['output'] || null;
+  const outputFilepath: string | null = cmd.opts()['output']
+    ? path.resolve(cmd.opts()['output'])
+    : null;
   const relativeFilepathRoot = cmd.opts()['relative'] ? path.resolve(cmd.opts()['relative']) : null;
 
   if (!fs.existsSync(resolvedFilepath)) {
@@ -57,7 +59,7 @@ export const action = (filepath: string, cmd: program.Command) => {
       ),
     ].filter(({ selector }) => selector.selectors.length > 0);
 
-    console.log(JSON.stringify(lookupItems, null, 2));
+    // logger.info('Lookup items', '\n', JSON.stringify(lookupItems, null, 2));
 
     const selectorItemTypes: Set<string> = new Set();
     const lookupMap: { [key: string]: { [key: string]: LookupSummaryItem[] } } = {};
@@ -68,7 +70,6 @@ export const action = (filepath: string, cmd: program.Command) => {
       if (relativeFilepathRoot) {
         relativeFilepath = path.relative(relativeFilepathRoot, filepath);
       }
-      logger.info('Item at relative filepath', identifier, relativeFilepath);
 
       selector.selectors.forEach((selectorItems: Selector[]) => {
         selectorItems.forEach((item: Selector) => {
@@ -83,7 +84,8 @@ export const action = (filepath: string, cmd: program.Command) => {
             case 'pseudo':
             case 'pseudo-element':
             case 'tag':
-              selectorName = item.name;
+              // Upper case tagNames to match output of DOM Element.tagName.
+              selectorName = item.name.toUpperCase();
             default:
               break;
           }
@@ -106,7 +108,13 @@ export const action = (filepath: string, cmd: program.Command) => {
       });
     });
 
-    console.log('selectorItemTypes', Array.from(selectorItemTypes));
-    console.log('Lookup Map\n', JSON.stringify(lookupMap, null, 2));
+    logger.info('Selector types', Array.from(selectorItemTypes));
+    const jsonOutput = JSON.stringify(lookupMap, null, 2);
+    if (outputFilepath) {
+      logger.info('Writing lookup to file', outputFilepath);
+      fs.writeFileSync(outputFilepath, jsonOutput);
+    } else {
+      logger.info('Lookup Map', '\n', jsonOutput);
+    }
   }
 };

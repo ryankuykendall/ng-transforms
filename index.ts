@@ -12,7 +12,6 @@ import * as aleUtil from './lib/utils/array-literal-expression.util';
 import * as oleUtil from './lib/utils/object-literal-expression.util';
 import { Property as cdProperty } from './lib/declaration-metadata/component-decorator.property';
 
-import * as dm from './lib/declaration-metadata/index.metadata';
 import {
   IComponentDecoratorRef,
   IComponentInlineModel,
@@ -28,9 +27,9 @@ import logger from './lib/utils/logger.util';
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { getRootMetadataStub } from './lib/declaration-metadata/root.metadata';
 
 /** COMMAND IMPORTS */
+import { action as dumpASTAction } from './lib/commands/dump-ast.command';
 import { action as dumpClassesAction } from './lib/commands/dump-classes.command';
 import { action as dumpEnumsAction } from './lib/commands/dump-enums.command';
 import { action as dumpImportsAction } from './lib/commands/dump-imports.command';
@@ -41,6 +40,7 @@ import { action as dumpDirectiveClassDecoratorsAction } from './lib/commands/dum
 import { action as dumpNgModuleClassDecoratorsAction } from './lib/commands/dump-ng-module-class-decorators.command';
 
 import { action as queryCommandAction } from './lib/commands/query.command';
+import { action as ngMetadataCollectAction } from './lib/commands/ng-metadata-collect.command';
 import { action as ngMetadataKeyAction } from './lib/commands/ng-metadata-key.command';
 import { action as ngMetadataQueryAction } from './lib/commands/ng-metadata-query.command';
 import { action as ngCreateComponentLookupAction } from './lib/commands/ng-create-component-lookup.command';
@@ -48,13 +48,11 @@ import { action as ngGenerateModuleAction } from './lib/commands/ng-generate-mod
 
 import {
   getTypescriptFileASTsFromDirectory,
-  dumpASTNode,
   findFilesWithASTMatchingSelector,
   generateTypescriptFromTransformationResults,
   generateTypescriptFromSourceFileAST,
 } from './lib/utils/ast.util';
 import {
-  IFileAST,
   NgAstSelector,
   IFileTransformationResult,
   IFileASTQueryMatch,
@@ -69,13 +67,7 @@ const printer: ts.Printer = ts.createPrinter({
 
 // TODO (ryan): Clean this file up by moving each of the command functions into their
 //   own files in lib/cli/command.
-program.command('dump <dir>').action((dir: string, cmd: program.Command) => {
-  const tsFiles = getTypescriptFileASTsFromDirectory(dir);
-  tsFiles.forEach(({ filepath, ast }: IFileAST, index: number) => {
-    logger.info(' - Processing file', filepath, '\n\n');
-    dumpASTNode(ast, index);
-  });
-});
+program.command('dump-ast <dir>').action(dumpASTAction);
 
 program
   .command('query <selector> <dir>')
@@ -555,40 +547,7 @@ program
   .option('-o --output <output>', 'Output file name for metadata file')
   .option('-v --verbose', 'Verbosity level')
   .description('Scans typescript files in a directory to pull out classes, interfaces, and enums')
-  .action((dir: string, cmd: program.Command) => {
-    logger.info(`Scanning ${dir}`);
-
-    const outputFile = cmd.opts()['output'] || null;
-    // TODO (ryan): Implement verbosity!
-    const verbose = cmd.opts()['verbose'] || false;
-
-    const tsFiles = getTypescriptFileASTsFromDirectory(dir);
-    let interfaceMatches = findFilesWithASTMatchingSelector(tsFiles, NgAstSelector.NgInterfaces);
-    interfaceMatches = interfaceMatches.filter((fileMatch: IFileASTQueryMatch) => {
-      // Filter out all of the test files/specs.
-      // TODO (ryan): Make this more robust. Using a regex for test
-      //   in the ModuleSpecifier may be overly broad.
-      const testResults = tsquery(
-        fileMatch.ast,
-        NgAstSelector.ImportDeclarationWithTestInModuleSpecifier
-      );
-      return testResults.length === 0;
-    });
-
-    const interfaces: dm.IRootMetadata = getRootMetadataStub();
-
-    // TODO (ryan): Update this to stop using a transform to drive the visitor pattern.
-    const transformationResults = interfaceMatches.forEach(({ filepath, source, ast }) => {
-      ts.transform(ast, [dm.collectMetadata(interfaces, filepath, dm.rootCollectorCallback)]);
-    });
-
-    if (outputFile) {
-      logger.info('Saving metadata file to', outputFile);
-      fs.writeFileSync(outputFile, JSON.stringify(interfaces, null, 2));
-    } else {
-      console.log(JSON.stringify(interfaces, null, 2));
-    }
-  });
+  .action(ngMetadataCollectAction);
 
 program
   .command('ng-metadata-key <filepath>')

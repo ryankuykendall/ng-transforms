@@ -3,7 +3,6 @@
 import program from 'commander';
 import ts from 'typescript';
 import { tsquery } from '@phenomnomnominal/tsquery';
-import JsonQuery from 'json-query';
 
 import * as ct from './lib/component.transform';
 import * as cdt from './lib/transforms/components/component-decorator.transform';
@@ -44,6 +43,7 @@ import { action as dumpDirectiveClassDecoratorsAction } from './lib/commands/dum
 import { action as dumpNgModuleClassDecoratorsAction } from './lib/commands/dump-ng-module-class-decorators.command';
 
 import { action as queryCommandAction } from './lib/commands/query.command';
+import { action as ngMetadataQueryAction } from './lib/commands/ng-metadata-query.command';
 import { action as ngCreateComponentLookupAction } from './lib/commands/ng-create-component-lookup.command';
 import { action as ngGenerateModuleAction } from './lib/commands/ng-generate-module.command';
 
@@ -686,40 +686,6 @@ program
     });
   });
 
-// TODO (ryan): Move these to lib.
-interface IObject {
-  [key: string]: any;
-}
-
-const jsonQueryLocals = {
-  // TODO (ryan): This needs to be further refined.
-  // Usage:
-  //   directives:count()
-  //   components:count()
-  count: function(input: Array<any> | undefined) {
-    if (Array.isArray(input)) {
-      return { count: input.length };
-    }
-  },
-
-  // Usage:
-  //   directives:select(filepath,identifier,selector)
-  //   components:select(filepath,identifier,selector,ngTemplate)
-  select: function(input: Array<any> | undefined) {
-    if (Array.isArray(input)) {
-      var keys: string[] = [].slice.call(arguments, 1);
-      return input.map((item: IObject) => {
-        return Object.keys(item).reduce((result: IObject, key: string) => {
-          if (keys.includes(key)) {
-            result[key] = item[key];
-          }
-          return result;
-        }, {});
-      });
-    }
-  },
-};
-
 // TODOs (ryan):
 //   1. Move the key and query functions out into ./lib/
 //   2. Clean-up JSON Query Select Function into ./lib/
@@ -807,35 +773,7 @@ program
   .command('ng-metadata-query <query> <filepath>')
   .option('-o --output <output>', 'Output file name for metadata file')
   .description('Queries the file output of ng-metadata-collect using json-query syntax')
-  .action((query: string, filepath: string, cmd: program.Command) => {
-    const outputFile = cmd.opts()['output'] || null;
-
-    if (fs.existsSync(filepath)) {
-      const raw = fs.readFileSync(filepath, fileUtil.UTF8);
-      let metadata: Object = JSON.parse(raw);
-
-      if (query) {
-        metadata = JsonQuery(query, {
-          data: metadata,
-          locals: jsonQueryLocals,
-        }).value;
-      }
-
-      if (outputFile) {
-        fs.writeFileSync(outputFile, JSON.stringify(metadata, null, 2));
-        logger.success('Saving metadata query results to', outputFile);
-      } else {
-        console.log(
-          chalk.green.bold('Metadata'),
-          (query && chalk.bold.yellow(`with query of ${query}`)) || ''
-        );
-
-        console.log(JSON.stringify(metadata, null, 2));
-      }
-    } else {
-      logger.error('Metadata file does not exist', filepath);
-    }
-  });
+  .action(ngMetadataQueryAction);
 
 program
   .command('ng-create-component-lookup <filepath>')

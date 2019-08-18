@@ -1,16 +1,11 @@
 #!/usr/bin/env node
 
 import program from 'commander';
-import ts from 'typescript';
-
-import * as compClassDecTrans from './lib/transforms/components/class-declaration.transform';
 import * as fileUtil from './lib/utils/file.util';
-// TODO (ryan): Wrap-up chalk with console.log && console.error into a separate module
-//   (and likely a singleton) to control output velocity levels across command runs.
-//   Add verbosity level as an option to general command flags.
-import logger from './lib/utils/logger.util';
 
-/** COMMAND IMPORTS */
+/**
+ * COMMAND IMPORTS
+ */
 
 // General TS AST Actions
 import { action as dumpASTAction } from './lib/commands/dump-ast.command';
@@ -37,29 +32,12 @@ import { action as ngGenerateModuleAction } from './lib/commands/ng-generate-mod
 
 // Ng Transform Actions
 import { action as componentToElementTransformAction } from './lib/commands/component-to-element-transform.command';
-
-import {
-  getTypescriptFileASTsFromDirectory,
-  generateTypescriptFromTransformationResults,
-} from './lib/utils/ast.util';
-import { IFileTransformationResult } from './lib/interfaces/ast-file.interface';
+import { action as wrapComponentinNamespaceTransformAction } from './lib/commands/wrap-component-in-namespace-transform.command';
 
 const packageJSON = fileUtil.loadJSONFile('package.json');
 program.version(packageJSON.version);
 
-const printer: ts.Printer = ts.createPrinter({
-  newLine: ts.NewLineKind.LineFeed,
-});
-
-// TODO (ryan): Clean this file up by moving each of the command functions into their
-//   own files in lib/cli/command.
 program.command('dump-ast <dir>').action(dumpASTAction);
-
-program
-  .command('query <selector> <dir>')
-  .option('-a --ancestor <ancestor>', 'Backtrack to first ancestor of SyntaxKind')
-  .action(queryCommandAction);
-
 program.command('dump-imports <dir>').action(dumpImportsAction);
 program.command('dump-classes <dir>').action(dumpClassesAction);
 program.command('dump-enums <dir>').action(dumpEnumsAction);
@@ -67,8 +45,16 @@ program.command('dump-interfaces <dir>').action(dumpInterfacesAction);
 program.command('dump-directives <dir>').action(dumpDirectiveClassDecoratorsAction);
 program.command('dump-components <dir>').action(dumpComponentClassDecoratorsAction);
 program.command('dump-ng-modules <dir>').action(dumpNgModuleClassDecoratorsAction);
+program
+  .command('query <selector> <dir>')
+  .option('-a --ancestor <ancestor>', 'Backtrack to first ancestor of SyntaxKind')
+  .action(queryCommandAction);
 
 program.command('component-to-element-transform <dir>').action(componentToElementTransformAction);
+program
+  .command('wrap-component-in-namespace <namespace> <dir>')
+  .description('Wraps Component class decorations in a namespace.')
+  .action(wrapComponentinNamespaceTransformAction);
 
 program
   .command('ng-inline-resources <dir>')
@@ -85,43 +71,6 @@ program
   )
   .option('-p --pretty', 'Output files through Prettier')
   .action(ngInlineResourcesAction);
-
-program
-  .command('wrap-component-in-namespace <namespace> <dir>')
-  .description('Wraps Component class decorations in a namespace.')
-  .action((namespace: string, dir: string, cmd: program.Command) => {
-    logger.info('Wrapping components in namespaces', namespace);
-    logger.info(`Scanning ${dir}`);
-    const namespaceItems = namespace.split('.');
-    logger.info('Namespace items', ...namespaceItems);
-
-    const tsFiles = getTypescriptFileASTsFromDirectory(dir);
-    const transformationResults: IFileTransformationResult[] = tsFiles.map(
-      ({ filepath, source, ast }): IFileTransformationResult => {
-        const transformation = ts.transform(ast, [
-          // Create copy of namespaceItems so we do not mutate it here.
-          compClassDecTrans.placeInNamespace([...namespaceItems]),
-        ]) as ts.TransformationResult<ts.SourceFile>;
-
-        return {
-          filepath,
-          source,
-          ast,
-          transformation,
-        };
-      }
-    );
-
-    const outputTSFiles: string[] = generateTypescriptFromTransformationResults(
-      transformationResults,
-      true
-    );
-
-    outputTSFiles.forEach((file: string) => {
-      logger.success('Component wrapped in namespace', namespace);
-      console.log(file);
-    });
-  });
 
 program
   .command('ng-metadata-collect <dir>')

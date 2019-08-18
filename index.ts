@@ -2,10 +2,7 @@
 
 import program from 'commander';
 import ts from 'typescript';
-import { tsquery } from '@phenomnomnominal/tsquery';
 
-import * as ct from './lib/component.transform';
-import * as cdt from './lib/transforms/components/component-decorator.transform';
 import * as compClassDecTrans from './lib/transforms/components/class-declaration.transform';
 import * as fileUtil from './lib/utils/file.util';
 // TODO (ryan): Wrap-up chalk with console.log && console.error into a separate module
@@ -13,21 +10,24 @@ import * as fileUtil from './lib/utils/file.util';
 //   Add verbosity level as an option to general command flags.
 import logger from './lib/utils/logger.util';
 
-import * as fs from 'fs';
-import * as path from 'path';
-
 /** COMMAND IMPORTS */
+
+// General TS AST Actions
 import { action as dumpASTAction } from './lib/commands/dump-ast.command';
+import { action as queryCommandAction } from './lib/commands/query.command';
+
+// Targeted TS AST Actions
 import { action as dumpClassesAction } from './lib/commands/dump-classes.command';
 import { action as dumpEnumsAction } from './lib/commands/dump-enums.command';
 import { action as dumpImportsAction } from './lib/commands/dump-imports.command';
 import { action as dumpInterfacesAction } from './lib/commands/dump-interfaces.command';
 
+// Ng TS AST Actions
 import { action as dumpComponentClassDecoratorsAction } from './lib/commands/dump-component-class-decorators.command';
 import { action as dumpDirectiveClassDecoratorsAction } from './lib/commands/dump-directive-class-decorators.command';
 import { action as dumpNgModuleClassDecoratorsAction } from './lib/commands/dump-ng-module-class-decorators.command';
 
-import { action as queryCommandAction } from './lib/commands/query.command';
+// Ng Metadata Action
 import { action as ngMetadataCollectAction } from './lib/commands/ng-metadata-collect.command';
 import { action as ngMetadataKeyAction } from './lib/commands/ng-metadata-key.command';
 import { action as ngMetadataQueryAction } from './lib/commands/ng-metadata-query.command';
@@ -35,17 +35,14 @@ import { action as ngInlineResourcesAction } from './lib/commands/ng-inline-reso
 import { action as ngCreateComponentLookupAction } from './lib/commands/ng-create-component-lookup.command';
 import { action as ngGenerateModuleAction } from './lib/commands/ng-generate-module.command';
 
+// Ng Transform Actions
+import { action as componentToElementTransformAction } from './lib/commands/component-to-element-transform.command';
+
 import {
   getTypescriptFileASTsFromDirectory,
-  findFilesWithASTMatchingSelector,
   generateTypescriptFromTransformationResults,
-  generateTypescriptFromSourceFileAST,
 } from './lib/utils/ast.util';
-import {
-  NgAstSelector,
-  IFileTransformationResult,
-  IFileASTQueryMatch,
-} from './lib/interfaces/ast-file.interface';
+import { IFileTransformationResult } from './lib/interfaces/ast-file.interface';
 
 const packageJSON = fileUtil.loadJSONFile('package.json');
 program.version(packageJSON.version);
@@ -71,46 +68,7 @@ program.command('dump-directives <dir>').action(dumpDirectiveClassDecoratorsActi
 program.command('dump-components <dir>').action(dumpComponentClassDecoratorsAction);
 program.command('dump-ng-modules <dir>').action(dumpNgModuleClassDecoratorsAction);
 
-program
-  .command('component-transform-add-view-encapsulation-shadow-dom <dir>')
-  .action((dir: string, cmd: program.Command) => {
-    logger.info(`Scanning ${dir}`);
-
-    const tsFiles = getTypescriptFileASTsFromDirectory(dir);
-    const componentDecoratorImportMatches = findFilesWithASTMatchingSelector(
-      tsFiles,
-      NgAstSelector.NgImportComponentDecoratorFromCore
-    );
-
-    const transformationResults = componentDecoratorImportMatches.map(
-      ({ filepath, source, ast }): IFileTransformationResult => {
-        const transformation = ts.transform(ast, [
-          ct.importViewEncapsulationFromAngularCoreTransformer(),
-          ct.addViewEncapsulationShadowDomToComponentDecoratorTransformer(),
-          ct.inlineHTMLTemplateFromFileInComponentDecoratorTransformer(filepath),
-          cdt.inlineCSSFromFileTransformer(filepath),
-          compClassDecTrans.renameComponentToElement(),
-        ]) as ts.TransformationResult<ts.SourceFile>;
-
-        return {
-          filepath,
-          source,
-          ast,
-          transformation,
-        };
-      }
-    );
-
-    const outputTSFiles: string[] = generateTypescriptFromTransformationResults(
-      transformationResults,
-      true
-    );
-
-    outputTSFiles.forEach((file: string) => {
-      logger.success('Component transform');
-      console.log(file);
-    });
-  });
+program.command('component-to-element-transform <dir>').action(componentToElementTransformAction);
 
 program
   .command('ng-inline-resources <dir>')

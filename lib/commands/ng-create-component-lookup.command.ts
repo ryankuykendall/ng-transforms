@@ -6,31 +6,12 @@ import logger from './../utils/logger.util';
 import { IRootMetadata } from '../declaration-metadata/root.interface';
 import { IDirectiveMetadata, ISelectorSet } from '../declaration-metadata/directive.interface';
 import { IComponentMetadata } from '../declaration-metadata/component.interface';
-import { Selector } from 'css-what';
-
-enum LookupItemType {
-  Directive = 'directive',
-  Component = 'component',
-}
-
-interface ILookupSummaryRoot {
-  tagNamePrefixes: string[];
-  tag?: { [key: string]: ILookupSummaryItem[] };
-  attribute?: { [key: string]: ILookupSummaryItem[] };
-  pseudo?: { [key: string]: ILookupSummaryItem[] };
-  [key: string]: any;
-}
-
-interface ILookupItem {
-  type: LookupItemType;
-  filepath: string;
-  identifier: string;
-  selector: ISelectorSet;
-}
-
-interface ILookupSummaryItem extends ILookupItem {
-  primary: Selector;
-}
+import {
+  ILookupItem,
+  LookupItemType,
+  ILookupSummaryRoot,
+  Selector,
+} from './ng-create-component-lookup.interface';
 
 export const action = (filepath: string, cmd: program.Command) => {
   const resolvedFilepath: string = path.resolve(filepath);

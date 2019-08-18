@@ -13,14 +13,22 @@ enum LookupItemType {
   Component = 'component',
 }
 
-interface LookupItem {
+interface ILookupSummaryRoot {
+  tagNamePrefixes: string[];
+  tag?: { [key: string]: ILookupSummaryItem[] };
+  attribute?: { [key: string]: ILookupSummaryItem[] };
+  pseudo?: { [key: string]: ILookupSummaryItem[] };
+  [key: string]: any;
+}
+
+interface ILookupItem {
   type: LookupItemType;
   filepath: string;
   identifier: string;
   selector: ISelectorSet;
 }
 
-interface LookupSummaryItem extends LookupItem {
+interface ILookupSummaryItem extends ILookupItem {
   primary: Selector;
 }
 
@@ -36,9 +44,9 @@ export const action = (filepath: string, cmd: program.Command) => {
     process.exit(0);
   } else {
     const metadata: IRootMetadata = fileUtil.loadJSONFile(resolvedFilepath);
-    const lookupItems: LookupItem[] = [
+    const lookupItems: ILookupItem[] = [
       ...metadata.directives.map(
-        (directive: IDirectiveMetadata): LookupItem => {
+        (directive: IDirectiveMetadata): ILookupItem => {
           return {
             type: LookupItemType.Directive,
             filepath: directive.filepath,
@@ -48,7 +56,7 @@ export const action = (filepath: string, cmd: program.Command) => {
         }
       ),
       ...metadata.components.map(
-        (component: IComponentMetadata): LookupItem => {
+        (component: IComponentMetadata): ILookupItem => {
           return {
             type: LookupItemType.Component,
             filepath: component.filepath,
@@ -61,10 +69,13 @@ export const action = (filepath: string, cmd: program.Command) => {
 
     // logger.info('Lookup items', '\n', JSON.stringify(lookupItems, null, 2));
 
+    const tagNamePrefixes: Set<string> = new Set<string>();
     const selectorItemTypes: Set<string> = new Set();
-    const lookupMap: { [key: string]: { [key: string]: LookupSummaryItem[] } } = {};
+    const lookupMap: ILookupSummaryRoot = {
+      tagNamePrefixes: [],
+    };
 
-    lookupItems.forEach((lookupItem: LookupItem) => {
+    lookupItems.forEach((lookupItem: ILookupItem) => {
       const { type: itemType, filepath, identifier, selector } = lookupItem;
       let relativeFilepath = filepath;
       if (relativeFilepathRoot) {
@@ -86,6 +97,11 @@ export const action = (filepath: string, cmd: program.Command) => {
             case 'tag':
               // Upper case tagNames to match output of DOM Element.tagName.
               selectorName = item.name.toUpperCase();
+              const tagNameComponents = selectorName.split('-');
+              if (tagNameComponents.length > 1) {
+                const [prefix] = tagNameComponents;
+                tagNamePrefixes.add(prefix);
+              }
             default:
               break;
           }
@@ -109,6 +125,9 @@ export const action = (filepath: string, cmd: program.Command) => {
     });
 
     logger.info('Selector types', Array.from(selectorItemTypes));
+    logger.info('tagNamePrefixes', Array.from(tagNamePrefixes));
+    lookupMap.tagNamePrefixes = Array.from(tagNamePrefixes).sort();
+
     const jsonOutput = JSON.stringify(lookupMap, null, 2);
     if (outputFilepath) {
       logger.info('Writing lookup to file', outputFilepath);

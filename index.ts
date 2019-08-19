@@ -105,7 +105,7 @@ program
   .action(ngCreateComponentLookupAction);
 
 program
-  .command('ng-generate-module <filepath>')
+  .command('ng-generate-module <identifier> <filepath>')
   .option(
     '-s --module-stub <module-stub-filepath>',
     'The module stub file to use as a starting point'

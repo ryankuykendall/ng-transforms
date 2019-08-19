@@ -12,21 +12,26 @@ import * as gmTransform from '../transforms/ng-module/generate.transform';
 import { INgModuleMetadata } from '../declaration-metadata/ng-module.interface';
 import { IComponentClassDecoratorMetadata } from '../declaration-metadata/component.interface';
 import { IDirectiveMetadata } from '../declaration-metadata/directive.interface';
+import { generateTypescriptFromSourceFileAST } from '../utils/ast.util';
 
 const DEFAULT_MODULE_STUB_FILEPATH = 'stubs/modules/ng-module-basic.module.ts';
+const DEFAULT_MODULE_STUB_IDENTIFIER = 'NgModuleBasicClassName';
 
 interface IImportGroupItem extends IHasIdentifier, IHasFilepath {}
 
-export const action = (filepath: string, cmd: program.Command) => {
+export const action = (identifier: string, filepath: string, cmd: program.Command) => {
   const metadataFilepath = path.resolve(filepath);
   if (!fs.existsSync(metadataFilepath)) {
     logger.error('ng metadata file does not exist', metadataFilepath);
     return 0;
   }
 
+  logger.info(`options`, cmd.opts());
+
   // TODO (ryan): Fix this! This is very brittle...
+  //   Export default file via package.json...
   const moduleStubFilepath = path.resolve(
-    path.join(process.cwd(), cmd.opts()['module-stub-filepath'] || DEFAULT_MODULE_STUB_FILEPATH)
+    path.join(process.cwd(), cmd.opts()['moduleStubFilepath'] || DEFAULT_MODULE_STUB_FILEPATH)
   );
   if (!fs.existsSync(moduleStubFilepath)) {
     logger.error('Cannot locate module stub file', moduleStubFilepath);
@@ -35,13 +40,11 @@ export const action = (filepath: string, cmd: program.Command) => {
   const moduleAst = tsquery.ast(moduleSource);
 
   const outputFilepath = cmd.opts()['output'] ? path.resolve(cmd.opts()['output']) : null;
-  const relativeRootFilepath = cmd.opts()['relative']
-    ? path.resolve(path.join(__dirname, cmd.opts()['output']))
-    : null;
-  const importModules: boolean = cmd.opts()['import-modules'] || false;
-  const importDirectives: boolean = cmd.opts()['import-directives'] || false;
-  const importComponents: boolean = cmd.opts()['import-components'] || false;
-  const importAll: boolean = cmd.opts()['import-all'] || false;
+  const relativeRootFilepath = cmd.opts()['relative'] ? path.resolve(cmd.opts()['relative']) : null;
+  const importModules: boolean = cmd.opts()['importModules'] || false;
+  const importDirectives: boolean = cmd.opts()['importDirectives'] || false;
+  const importComponents: boolean = cmd.opts()['importComponents'] || false;
+  const importAll: boolean = cmd.opts()['importAll'] || false;
 
   const metadataRaw = fs.readFileSync(metadataFilepath, fileUtil.UTF8);
   const metadata: IRootMetadata = JSON.parse(metadataRaw);
@@ -63,11 +66,13 @@ export const action = (filepath: string, cmd: program.Command) => {
     rootItemsToCollect.add(RootType.Classes);
   }
 
+  logger.info(`Collecting`, Array.from(rootItemsToCollect));
+
   const identifiersByFile = new Map<string, Set<string>>() as gmTransform.IdentifiersByFile;
   Array.from(rootItemsToCollect).forEach((rootType: RootType) => {
     if (metadata[rootType]) {
       metadata[rootType].forEach(({ filepath: itemFilepath, identifier }: any) => {
-        let relative = path.dirname(itemFilepath);
+        let relative = itemFilepath;
         if (relativeRootFilepath) {
           relative = path.relative(relativeRootFilepath, relative);
         }
@@ -81,6 +86,8 @@ export const action = (filepath: string, cmd: program.Command) => {
           identifiersInFile.add(identifier);
         }
       });
+    } else {
+      logger.error(`No metadata for RootType`, rootType);
     }
   });
 
@@ -93,8 +100,22 @@ export const action = (filepath: string, cmd: program.Command) => {
 
   const transformation: ts.TransformationResult<ts.SourceFile> = gmTransform.invoke(
     moduleAst,
-    identifiersByFile
+    identifiersByFile,
+    identifier,
+    DEFAULT_MODULE_STUB_IDENTIFIER
   );
 
-  logger.info('Transformation result', '\n', transformation.transformed[0].getFullText());
+  const [sourceFileTransformed] = transformation.transformed;
+  const generatedSource = generateTypescriptFromSourceFileAST(
+    sourceFileTransformed,
+    outputFilepath || 'generated-module.ts',
+    true
+  );
+
+  if (outputFilepath) {
+    logger.success(`Writing generated module for`, identifier, `to`, outputFilepath);
+    fs.writeFileSync(outputFilepath, generatedSource);
+  } else {
+    logger.info('Transformation result for', identifier, '\n', generatedSource);
+  }
 };

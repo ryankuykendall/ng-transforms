@@ -9,6 +9,37 @@ function addImportDeclarationsTransform<T extends ts.Node>(
     const visit: ts.Visitor = node => {
       let workingNode = node;
 
+      if (ts.isSourceFile(workingNode)) {
+        workingNode = ts.getMutableClone(workingNode);
+        if ((workingNode as ts.SourceFile).statements) {
+          const allStatements: ts.Statement[] = (workingNode as ts.SourceFile).statements.map(
+            (statement: ts.Statement) => statement
+          );
+
+          const lastImportDeclarationIndex: number = lastIndexOfKind(
+            allStatements,
+            ts.SyntaxKind.ImportDeclaration
+          );
+
+          // TODO (ryan): Better error checking here in the event that
+          //   lastIndex === -1
+          const preStatements = allStatements.slice(0, lastImportDeclarationIndex + 1);
+          const postStatements = allStatements.slice(lastImportDeclarationIndex + 1);
+
+          const newImportDeclarations = Array.from(identifiers.entries())
+            .sort(([x], [y]) => {
+              // sort by filepath
+              return x > y ? 1 : -1;
+            })
+            .map(([filepath, identifiers]) => createImportDeclarationFrom(filepath, identifiers));
+
+          (workingNode as ts.SourceFile).statements = ts.createNodeArray<ts.Statement>([
+            ...preStatements,
+            ...newImportDeclarations,
+            ...postStatements,
+          ]);
+        }
+      }
       // Match working node and then apply transform
 
       return ts.visitEachChild(workingNode, child => visit(child), context);
@@ -78,4 +109,36 @@ export const invoke = (
     addImportsToNgModuleDecoratorTransform(allUniqueIdentifiers),
     renameClassDeclarationIdentifier(toIdentifier, fromIdentifier),
   ]) as ts.TransformationResult<ts.SourceFile>;
+};
+
+const createImportDeclarationFrom = (
+  filepath: string,
+  identifiers: Set<string>
+): ts.ImportDeclaration => {
+  return ts.createImportDeclaration(
+    undefined,
+    undefined,
+    ts.createImportClause(
+      undefined,
+      ts.createNamedImports(createImportSpecifiersFrom(identifiers))
+    ),
+    ts.createStringLiteral(filepath)
+  );
+};
+
+const createImportSpecifiersFrom = (identifiers: Set<string>): ts.ImportSpecifier[] => {
+  return Array.from(identifiers)
+    .sort()
+    .map((identifier: string) =>
+      ts.createImportSpecifier(undefined, ts.createIdentifier(identifier))
+    );
+};
+
+const lastIndexOfKind = (collection: ts.Node[], kind: ts.SyntaxKind): number => {
+  return collection.reduce((lastIndex, node: ts.Node, currentIndex: number) => {
+    if (node.kind === kind) {
+      lastIndex = currentIndex;
+    }
+    return lastIndex;
+  }, -1);
 };

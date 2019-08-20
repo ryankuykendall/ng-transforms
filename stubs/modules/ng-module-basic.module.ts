@@ -1,5 +1,4 @@
 import { NgModule } from '@angular/core';
-import { SomeComponent } from './some.component';
 
 @NgModule({
   bootstrap: [],

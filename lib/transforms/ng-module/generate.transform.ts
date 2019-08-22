@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import path from 'path';
 
 export type IdentifiersByFile = Map<string, Set<string>>;
 
@@ -115,6 +116,8 @@ const createImportDeclarationFrom = (
   filepath: string,
   identifiers: Set<string>
 ): ts.ImportDeclaration => {
+  const modulePath = path.join(path.dirname(filepath), path.basename(filepath, '.ts'));
+
   return ts.createImportDeclaration(
     undefined,
     undefined,
@@ -122,7 +125,7 @@ const createImportDeclarationFrom = (
       undefined,
       ts.createNamedImports(createImportSpecifiersFrom(identifiers))
     ),
-    ts.createStringLiteral(filepath)
+    ts.createStringLiteral(modulePath)
   );
 };
 

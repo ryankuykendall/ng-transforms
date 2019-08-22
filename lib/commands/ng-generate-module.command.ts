@@ -9,9 +9,6 @@ import path from 'path';
 import { IRootMetadata, RootType } from '../declaration-metadata/root.interface';
 import { IHasIdentifier, IHasFilepath } from '../declaration-metadata/base.interface';
 import * as gmTransform from '../transforms/ng-module/generate.transform';
-import { INgModuleMetadata } from '../declaration-metadata/ng-module.interface';
-import { IComponentClassDecoratorMetadata } from '../declaration-metadata/component.interface';
-import { IDirectiveMetadata } from '../declaration-metadata/directive.interface';
 import { generateTypescriptFromSourceFileAST } from '../utils/ast.util';
 
 const DEFAULT_MODULE_STUB_FILEPATH = 'stubs/modules/ng-module-basic.module.ts';

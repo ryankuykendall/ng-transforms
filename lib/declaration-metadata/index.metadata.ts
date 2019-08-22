@@ -1,7 +1,6 @@
 import ts from 'typescript';
-import * as decIdsUtil from './../utils/decorator-identifier.util';
+import { NgClassDecorator } from './../utils/decorator-identifier.util';
 import * as decUtil from './../utils/decorator.util';
-import * as idUtil from './../utils/identifier.util';
 
 import { IClassMetadata } from './class.interface';
 import { collectClassMetadata } from './class.metadata';
@@ -22,6 +21,8 @@ import { ITypeAliasMetadata } from './type-aliases.interface';
 import { collectTypeAliasMetadata } from './type-aliases.metadata';
 import { ISourceFileMetadata } from './source-file.interface';
 import { collectSourceFileMetadata } from './source-file.metadata';
+import { IServiceMetadata } from './service.interface';
+import { collectInjectableMetadata } from './service.metadata';
 
 export { IRootMetadata, rootCollectorCallback };
 
@@ -38,13 +39,16 @@ export function collectMetadata<T extends ts.Node>(
   return context => {
     const visit: ts.Visitor = node => {
       if (ts.isClassDeclaration(node)) {
-        if (decUtil.hasDecoratorWithName(node, decIdsUtil.COMPONENT)) {
+        if (decUtil.hasDecoratorWithName(node, NgClassDecorator.Component)) {
           const metadata: IComponentMetadata = collectComponentMetadata(node, filepath);
           callback.call(null, interfaces, RootType.Components, metadata);
-        } else if (decUtil.hasDecoratorWithName(node, decIdsUtil.DIRECTIVE)) {
+        } else if (decUtil.hasDecoratorWithName(node, NgClassDecorator.Directive)) {
           const metadata: IDirectiveMetadata = collectDirectiveMetadata(node, filepath);
           callback.call(null, interfaces, RootType.Directives, metadata);
-        } else if (decUtil.hasDecoratorWithName(node, decIdsUtil.NG_MODULE)) {
+        } else if (decUtil.hasDecoratorWithName(node, NgClassDecorator.Injectable)) {
+          const metadata: IServiceMetadata = collectInjectableMetadata(node, filepath);
+          callback.call(null, interfaces, RootType.Services, metadata);
+        } else if (decUtil.hasDecoratorWithName(node, NgClassDecorator.NgModule)) {
           const metadata: INgModuleMetadata = collectNgModuleMetadata(node, filepath);
           callback.call(null, interfaces, RootType.NgModules, metadata);
         } else {

@@ -13,6 +13,7 @@ export const OUTPUT = 'Output';
 export enum NgClassDecorator {
   Component = 'Component',
   Directive = 'Directive',
+  Injectable = 'Injectable',
   NgModule = 'NgModule',
 }
 

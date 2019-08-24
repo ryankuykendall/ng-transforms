@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import { NgClassDecorator } from './decorator-identifier.util';
 
 const getDecoratorName = (decorator: ts.Decorator): string => {
   const expression = decorator.expression as ts.CallExpression;
@@ -29,4 +30,8 @@ export const getDecoratorMap = (node: ts.Node): NodeDecoratorMap => {
 
 export const hasDecoratorWithName = (node: ts.Node, name: string): boolean => {
   return getDecoratorNames(node).has(name);
+};
+
+export const isDecoratorWithName = (decorator: ts.Decorator, name: NgClassDecorator): boolean => {
+  return getDecoratorName(decorator) === name;
 };

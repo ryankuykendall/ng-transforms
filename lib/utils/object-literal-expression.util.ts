@@ -137,3 +137,19 @@ export const getObjectLiteralPropertiesAsMap = <T extends string>(
 
   return properties;
 };
+
+export const mapPropertyNamesToObjectLiteralElementLikes = <T extends string>(
+  objectLiteral: ts.ObjectLiteralExpression
+): Map<T, ts.ObjectLiteralElementLike> => {
+  return objectLiteral.properties.reduce(
+    (propertyMap: Map<T, ts.ObjectLiteralElementLike>, property: ts.ObjectLiteralElementLike) => {
+      if (ts.isPropertyAssignment(property)) {
+        const paProp = property as ts.PropertyAssignment;
+        const key = paProp.name.getText();
+        propertyMap.set(key as T, property);
+      }
+      return propertyMap;
+    },
+    new Map<T, ts.ObjectLiteralElementLike>()
+  );
+};

@@ -1,5 +1,14 @@
 import ts from 'typescript';
 import path from 'path';
+import { isDecoratorWithName } from '../../utils/decorator.util';
+import { NgClassDecorator } from '../../utils/decorator-identifier.util';
+import {
+  hasKey,
+  getPropertyAsArrayLiteralExpression,
+  mapPropertyNamesToObjectLiteralElementLikes,
+} from '../../utils/object-literal-expression.util';
+import { Property as NgModuleDecoratorProperty } from '../../declaration-metadata/ng-module-decorator.property';
+import logger from '../../utils/logger.util';
 
 export type IdentifiersByFile = Map<string, Set<string>>;
 
@@ -57,6 +66,44 @@ function addImportsToNgModuleDecoratorTransform<T extends ts.Node>(
     const visit: ts.Visitor = node => {
       let workingNode = node;
 
+      if (
+        ts.isDecorator(workingNode) &&
+        isDecoratorWithName(workingNode, NgClassDecorator.NgModule)
+      ) {
+        const decorator = ts.getMutableClone(workingNode) as ts.Decorator;
+        if (decorator.expression && ts.isCallExpression(decorator.expression)) {
+          const callExp = decorator.expression as ts.CallExpression;
+          if (callExp.arguments) {
+            const [objLitExp] = callExp.arguments;
+            if (objLitExp && ts.isObjectLiteralExpression(objLitExp)) {
+              const propertyMap: Map<
+                NgModuleDecoratorProperty,
+                ts.ObjectLiteralElementLike
+              > = mapPropertyNamesToObjectLiteralElementLikes(objLitExp);
+              const importsAssignment = propertyMap.get(NgModuleDecoratorProperty.Imports);
+              if (
+                importsAssignment &&
+                ts.isPropertyAssignment(importsAssignment) &&
+                importsAssignment.initializer &&
+                ts.isArrayLiteralExpression(importsAssignment.initializer)
+              ) {
+                const initializer: ts.ArrayLiteralExpression = importsAssignment.initializer;
+                const elements: ts.Expression[] = initializer.elements.map(
+                  (expression: ts.Expression) => expression
+                );
+
+                identifiers.sort().forEach((identifier: string) => {
+                  elements.push(ts.createIdentifier(identifier));
+                });
+
+                importsAssignment.initializer = ts.createArrayLiteral(elements);
+              }
+            }
+          }
+        }
+
+        workingNode = decorator;
+      }
       // Match working node and then apply transform
 
       return ts.visitEachChild(workingNode, child => visit(child), context);
@@ -79,7 +126,6 @@ function renameClassDeclarationIdentifier<T extends ts.Node>(
         workingNode.name &&
         workingNode.name.getText() === fromIdentifier
       ) {
-        console.log(` -- Transforming -- `, toIdentifier, fromIdentifier);
         workingNode = ts.getMutableClone(workingNode);
         (workingNode as ts.ClassDeclaration).name = ts.createIdentifier(toIdentifier);
       }

@@ -7,14 +7,18 @@ import fs from 'fs';
 import * as fileUtil from './../utils/file.util';
 import path from 'path';
 import { IRootMetadata, RootType } from '../declaration-metadata/root.interface';
-import { IHasIdentifier, IHasFilepath } from '../declaration-metadata/base.interface';
 import * as gmTransform from '../transforms/ng-module/generate.transform';
 import { generateTypescriptFromSourceFileAST } from '../utils/ast.util';
 
-const DEFAULT_MODULE_STUB_FILEPATH = 'stubs/modules/ng-module-basic.module.ts';
+const DEFAULT_MODULE_STUB_FILEPATH = path.resolve(
+  /**
+   * TODO (ryan): Make sure this works with ngm bin using files or directories
+   *   declared in package.json.
+   * This is being read from ./dist/lib/commands/ng-generate-module.command
+   */
+  path.join(__dirname, '..', '..', '..', 'stubs/modules/ng-module-basic.module.ts')
+);
 const DEFAULT_MODULE_STUB_IDENTIFIER = 'NgModuleBasicClassName';
-
-interface IImportGroupItem extends IHasIdentifier, IHasFilepath {}
 
 export const action = (identifier: string, filepath: string, cmd: program.Command) => {
   const metadataFilepath = path.resolve(filepath);
@@ -23,13 +27,10 @@ export const action = (identifier: string, filepath: string, cmd: program.Comman
     return 0;
   }
 
-  logger.info(`options`, cmd.opts());
+  const moduleStubFilepath = cmd.opts()['moduleStubFilepath']
+    ? path.resolve(cmd.opts()['moduleStubFilepath'])
+    : DEFAULT_MODULE_STUB_FILEPATH;
 
-  // TODO (ryan): Fix this! This is very brittle...
-  //   Export default file via package.json...
-  const moduleStubFilepath = path.resolve(
-    path.join(process.cwd(), cmd.opts()['moduleStubFilepath'] || DEFAULT_MODULE_STUB_FILEPATH)
-  );
   if (!fs.existsSync(moduleStubFilepath)) {
     logger.error('Cannot locate module stub file', moduleStubFilepath);
   }
@@ -46,7 +47,6 @@ export const action = (identifier: string, filepath: string, cmd: program.Comman
   const metadataRaw = fs.readFileSync(metadataFilepath, fileUtil.UTF8);
   const metadata: IRootMetadata = JSON.parse(metadataRaw);
 
-  const importDeclarationItems: IImportGroupItem[] = [];
   const rootItemsToCollect = new Set<RootType>();
   if (importAll) {
     rootItemsToCollect.add(RootType.NgModules);
@@ -62,8 +62,6 @@ export const action = (identifier: string, filepath: string, cmd: program.Comman
   if (importComponents) {
     rootItemsToCollect.add(RootType.Classes);
   }
-
-  logger.info(`Collecting`, Array.from(rootItemsToCollect));
 
   const identifiersByFile = new Map<string, Set<string>>() as gmTransform.IdentifiersByFile;
   Array.from(rootItemsToCollect).forEach((rootType: RootType) => {
@@ -87,13 +85,6 @@ export const action = (identifier: string, filepath: string, cmd: program.Comman
       logger.error(`No metadata for RootType`, rootType);
     }
   });
-
-  logger.info(
-    'identifiersByFile',
-    Array.from(identifiersByFile.entries()).map(([file, ids]) => {
-      return [file, Array.from(ids)];
-    })
-  );
 
   const transformation: ts.TransformationResult<ts.SourceFile> = gmTransform.invoke(
     moduleAst,

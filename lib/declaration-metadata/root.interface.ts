@@ -8,7 +8,7 @@ import { INgModuleMetadata } from './ng-module.interface';
 import { ITypeAliasMetadata } from './type-aliases.interface';
 import { IRootFunctionMetadata } from './function.interface';
 import { ISourceFileMetadata } from './source-file.interface';
-import { IServiceMetadata } from './service.interface';
+import { IInjectableMetadata } from './injectable.interface';
 
 // Instead of RootTypes, we should call these declarations
 // QUESTION (ryan): Should we be capturing exported functions/methods
@@ -19,10 +19,10 @@ export enum RootType {
   Directives = 'directives',
   Enums = 'enums',
   Functions = 'functions',
+  Injectables = 'injectables',
   Interfaces = 'interfaces',
   Methods = 'methods',
   NgModules = 'ngModules',
-  Services = 'services',
   SourceFiles = 'sourceFiles',
   TypeAliases = 'typeAliases',
 }
@@ -42,10 +42,10 @@ export interface IRootMetadata extends indexableRoot {
   directives: IDirectiveMetadata[];
   enums: IEnumMetadata[];
   functions: IRootFunctionMetadata[]; // TODO (ryan)!
+  injectables: IInjectableMetadata[];
   interfaces: IInterfaceMetadata[];
   methods: IRootMethodMetadata[]; // TODO (ryan)!
   ngModules: INgModuleMetadata[];
-  services: IServiceMetadata[];
   typeAliases: ITypeAliasMetadata[];
 }
 
@@ -56,8 +56,8 @@ export type RootMetadataType =
   | IDirectiveMetadata
   | IEnumMetadata
   | IRootFunctionMetadata
+  | IInjectableMetadata
   | IInterfaceMetadata
   | IRootMethodMetadata
   | INgModuleMetadata
-  | IServiceMetadata
   | ITypeAliasMetadata;

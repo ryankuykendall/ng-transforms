@@ -8,10 +8,10 @@ export const getRootMetadataStub = (): IRootMetadata => {
     [RootType.Directives]: [],
     [RootType.Enums]: [],
     [RootType.Functions]: [],
+    [RootType.Injectables]: [],
     [RootType.Interfaces]: [],
     [RootType.Methods]: [],
     [RootType.NgModules]: [],
-    [RootType.Services]: [],
     [RootType.TypeAliases]: [],
   };
 };

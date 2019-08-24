@@ -21,15 +21,15 @@ import { ITypeAliasMetadata } from './type-aliases.interface';
 import { collectTypeAliasMetadata } from './type-aliases.metadata';
 import { ISourceFileMetadata } from './source-file.interface';
 import { collectSourceFileMetadata } from './source-file.metadata';
-import { IServiceMetadata } from './service.interface';
-import { collectInjectableMetadata } from './service.metadata';
+import { IInjectableMetadata } from './injectable.interface';
+import { collectInjectableMetadata } from './injectable.metadata';
 
 export { IRootMetadata, rootCollectorCallback };
 
 // Note: In classes/components/directives where we can not make a good decision around
 //   how to define the metadata or defaults (say for getters or setters), we should just
 //   capture it as a WARNING with the related code snippet so that we can try to address
-//   it incrementally (or prompt the user to do it for use!)
+//   it incrementally (or prompt the user to do it for us!)
 
 export function collectMetadata<T extends ts.Node>(
   interfaces: IRootMetadata,
@@ -46,8 +46,8 @@ export function collectMetadata<T extends ts.Node>(
           const metadata: IDirectiveMetadata = collectDirectiveMetadata(node, filepath);
           callback.call(null, interfaces, RootType.Directives, metadata);
         } else if (decUtil.hasDecoratorWithName(node, NgClassDecorator.Injectable)) {
-          const metadata: IServiceMetadata = collectInjectableMetadata(node, filepath);
-          callback.call(null, interfaces, RootType.Services, metadata);
+          const metadata: IInjectableMetadata = collectInjectableMetadata(node, filepath);
+          callback.call(null, interfaces, RootType.Injectables, metadata);
         } else if (decUtil.hasDecoratorWithName(node, NgClassDecorator.NgModule)) {
           const metadata: INgModuleMetadata = collectNgModuleMetadata(node, filepath);
           callback.call(null, interfaces, RootType.NgModules, metadata);

@@ -17,8 +17,8 @@ export interface IAngularCoreClassMemberMetadata {
   contentChildrenMembers: IContentChildrenMemberMetadata[];
 
   // TO consider, but that are component specific:
-  // viewChildMembers
-  // viewChildrenMembers
+  viewChildMembers?: IViewChildMemberMetadata[];
+  viewChildrenMembers?: IViewChildrenMemberMetadata[];
 }
 
 export interface IConstructorParameterAttribute extends IHasIdentifier {
@@ -84,4 +84,13 @@ export interface IContentChildrenMemberMetadata extends IHasIdentifier, IInGroup
   descendants?: boolean;
   read?: ExpressionMetadata;
   selector: ExpressionMetadata;
+}
+
+export interface IViewChildMemberMetadata extends IHasIdentifier, IInGroup {
+  raw: string;
+  isStatic: boolean;
+}
+
+export interface IViewChildrenMemberMetadata extends IHasIdentifier, IInGroup {
+  raw: string;
 }

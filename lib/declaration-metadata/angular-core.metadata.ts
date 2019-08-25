@@ -9,9 +9,14 @@ import {
   ContentChildDecoratorOption,
   IContentChildrenMemberMetadata,
   ContentChildrenDecoratorOption,
+  IViewChildMemberMetadata,
+  IViewChildrenMemberMetadata,
 } from './angular-core.interface';
 import { IMember, IClassMetadata, ClassMetadataGroup } from './class.interface';
-import { NgDirectiveClassMemberDecorator } from './../utils/decorator-identifier.util';
+import {
+  NgDirectiveClassMemberDecorator,
+  NgComponentClassMemberDecorator,
+} from './../utils/decorator-identifier.util';
 import {
   getArgumentAtPositionAsString,
   getArgumentAtPositionAsArrayOfStrings,
@@ -46,6 +51,8 @@ export const collectAngularCoreClassMemberMetadata = (
   const outputMembers = collectOutputMemberMetadata(distribution);
   const contentChildMembers = collectContentChildMemberMetadata(distribution);
   const contentChildrenMembers = collectContentChildrenMemberMetadata(distribution);
+  const viewChildMembers = collectViewChildMemberMetadata(distribution);
+  const viewChildrenMembers = collectViewChildrenMemberMetadata(distribution);
 
   return {
     inputMembers,
@@ -54,6 +61,8 @@ export const collectAngularCoreClassMemberMetadata = (
     outputMembers,
     contentChildMembers,
     contentChildrenMembers,
+    viewChildMembers,
+    viewChildrenMembers,
   };
 };
 
@@ -312,4 +321,68 @@ const collectContentChildrenMemberMetadata = (
         read,
       } as IContentChildrenMemberMetadata;
     });
+};
+
+// TODO (ryan): Finish this up!
+// NOTE (ryan): ViewChild and ContentChild share the same decorator interface
+//   and properties. Extract the decorator code out to another function.
+const collectViewChildMemberMetadata = (
+  distribution: IMember[]
+): IViewChildMemberMetadata[] | undefined => {
+  const members = distribution.filter((member: IMember) =>
+    member.decorators.has(NgComponentClassMemberDecorator.ViewChild)
+  );
+  if (members.length > 0) {
+    return members.map((member: IMember) => {
+      const { identifier } = member;
+      const decorator: ts.Decorator | undefined = member.decorators.get(
+        NgComponentClassMemberDecorator.ViewChild
+      );
+      let raw = '';
+
+      if (decorator) {
+        raw = decorator.getText();
+      }
+
+      return {
+        identifier,
+        in: member.in,
+        raw,
+      } as IViewChildMemberMetadata;
+    });
+  }
+
+  return;
+};
+
+// TODO (ryan): Finish this up!!!
+// NOTE (ryan): ViewChildren shares some interface aspects with ContentChildren
+//   Is there a way to share code between them?
+const collectViewChildrenMemberMetadata = (
+  distribution: IMember[]
+): IViewChildrenMemberMetadata[] | undefined => {
+  const members = distribution.filter((member: IMember) =>
+    member.decorators.has(NgComponentClassMemberDecorator.ViewChildren)
+  );
+  if (members.length > 0) {
+    return members.map((member: IMember) => {
+      const { identifier } = member;
+      const decorator: ts.Decorator | undefined = member.decorators.get(
+        NgComponentClassMemberDecorator.ViewChildren
+      );
+      let raw = '';
+
+      if (decorator) {
+        raw = decorator.getText();
+      }
+
+      return {
+        identifier,
+        in: member.in,
+        raw,
+      } as IViewChildrenMemberMetadata;
+    });
+  }
+
+  return;
 };

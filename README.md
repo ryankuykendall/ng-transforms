@@ -86,6 +86,41 @@ Outputing the JSON metadata output to a file.
 $ npm run cli ng-metadata-collect <directory/file> -o <output-file-name>
 ```
 
+#### (Draft) Config file format for ng-collect-metadata
+
+Pipeline:
+Includes => Excludes => Collection
+
+interface INgCollectionPipelineConfig
+
+```
+{
+   "output": <outputFilepath>,
+   "includes": {
+      // Filesystem level inclusions, step 1
+      "globs": [<Array of globs>],
+      "directories": [<Array of directories>],
+      "files": [<Array of files>],
+   },
+   excludes: {
+       // Filesystem level exclusions, step 2
+      "globs": [<Array of globs>],
+      "directories": [<Array of directories>],
+      "files": [<Array of files>],
+      // File level exclusions, step 3
+      "tsqueries": [<Array of tsqueries>],
+   },
+   commands: {
+      "pre": [
+         <Array of commands to execute before>
+      ],
+      "post": [
+         <Array of commands to execute after that reference output>
+      ]
+   }
+}
+```
+
 ### Generating a key for an Angular project metadata file (useful for understanding the interfaces that can be queried for using JSON Query syntax in ng-metadata-query command)
 
 ```

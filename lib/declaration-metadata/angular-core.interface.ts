@@ -79,18 +79,27 @@ export enum ContentChildrenDecoratorOption {
 }
 
 export interface IContentChildrenMemberMetadata extends IHasIdentifier, IInGroup {
-  // TODO (ryan): Collect Metadata described here:
-  //   https://angular.io/api/core/ContentChildren
   descendants?: boolean;
   read?: ExpressionMetadata;
   selector: ExpressionMetadata;
 }
 
+export enum ViewChildDecoratorOption {
+  Read = 'read',
+  Static = 'static',
+}
+
 export interface IViewChildMemberMetadata extends IHasIdentifier, IInGroup {
-  raw: string;
   isStatic: boolean;
+  read?: ExpressionMetadata;
+  selector: ExpressionMetadata;
+}
+
+export enum ViewChildrenDecoratorOption {
+  Read = 'read',
 }
 
 export interface IViewChildrenMemberMetadata extends IHasIdentifier, IInGroup {
-  raw: string;
+  read?: ExpressionMetadata;
+  selector: ExpressionMetadata;
 }

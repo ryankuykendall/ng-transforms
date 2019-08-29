@@ -11,6 +11,8 @@ import {
   ContentChildrenDecoratorOption,
   IViewChildMemberMetadata,
   IViewChildrenMemberMetadata,
+  ViewChildDecoratorOption,
+  ViewChildrenDecoratorOption,
 } from './angular-core.interface';
 import { IMember, IClassMetadata, ClassMetadataGroup } from './class.interface';
 import {
@@ -246,7 +248,6 @@ const collectContentChildMemberMetadata = (
             (prop: ts.ObjectLiteralElementLike) => prop
           );
 
-          // TODO (ryan): Make sure to add this for @Inputs as well!
           if (hasKey(optionsArg, ContentChildDecoratorOption.Static)) {
             isStatic = getPropertyAsBoolean(optionsProperties, ContentChildDecoratorOption.Static);
           }
@@ -338,16 +339,43 @@ const collectViewChildMemberMetadata = (
       const decorator: ts.Decorator | undefined = member.decorators.get(
         NgComponentClassMemberDecorator.ViewChild
       );
-      let raw = '';
+
+      let selector!: ExpressionMetadata;
+      let isStatic!: boolean | undefined;
+      let read!: ExpressionMetadata | undefined;
 
       if (decorator) {
-        raw = decorator.getText();
+        const expression = decorator.expression as ts.CallExpression;
+        const [selectorArg, optionsArg] = expression.arguments;
+        selector = collectExpressionMetadata(selectorArg);
+
+        if (optionsArg && ts.isObjectLiteralExpression(optionsArg)) {
+          const optionsProperties = optionsArg.properties.map(
+            (prop: ts.ObjectLiteralElementLike) => prop
+          );
+
+          if (hasKey(optionsArg, ViewChildDecoratorOption.Static)) {
+            isStatic = getPropertyAsBoolean(optionsProperties, ViewChildDecoratorOption.Static);
+          }
+
+          if (hasKey(optionsArg, ViewChildDecoratorOption.Read)) {
+            const readProp = getPropertyAsExpression(
+              optionsProperties,
+              ViewChildDecoratorOption.Read
+            );
+            if (readProp) {
+              read = collectExpressionMetadata(readProp);
+            }
+          }
+        }
       }
 
       return {
         identifier,
         in: member.in,
-        raw,
+        selector,
+        isStatic,
+        read,
       } as IViewChildMemberMetadata;
     });
   }
@@ -371,15 +399,37 @@ const collectViewChildrenMemberMetadata = (
         NgComponentClassMemberDecorator.ViewChildren
       );
       let raw = '';
+      let selector!: ExpressionMetadata;
+      let read!: ExpressionMetadata | undefined;
 
       if (decorator) {
         raw = decorator.getText();
+        const expression = decorator.expression as ts.CallExpression;
+        const [selectorArg, optionsArg] = expression.arguments;
+        selector = collectExpressionMetadata(selectorArg);
+
+        if (optionsArg && ts.isObjectLiteralExpression(optionsArg)) {
+          const optionsProperties = optionsArg.properties.map(
+            (prop: ts.ObjectLiteralElementLike) => prop
+          );
+
+          if (hasKey(optionsArg, ViewChildrenDecoratorOption.Read)) {
+            const readProp = getPropertyAsExpression(
+              optionsProperties,
+              ViewChildrenDecoratorOption.Read
+            );
+            if (readProp) {
+              read = collectExpressionMetadata(readProp);
+            }
+          }
+        }
       }
 
       return {
         identifier,
         in: member.in,
-        raw,
+        read,
+        selector,
       } as IViewChildrenMemberMetadata;
     });
   }

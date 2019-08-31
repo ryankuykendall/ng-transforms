@@ -34,6 +34,9 @@ import { action as ngGenerateModuleAction } from './lib/commands/ng-generate-mod
 import { action as componentToElementTransformAction } from './lib/commands/component-to-element-transform.command';
 import { action as wrapComponentinNamespaceTransformAction } from './lib/commands/wrap-component-in-namespace-transform.command';
 
+// Ng Collection Pipeline Actions
+import { action as ngGenerateCollectionPipelineConfig } from './lib/commands/ng-generate-collection-pipeline-config.command';
+
 const packageJSON = fileUtil.loadJSONFile('package.json');
 program.version(packageJSON.version);
 
@@ -70,6 +73,9 @@ program
     'Build directory root for component template HTML files'
   )
   .option('-p --pretty', 'Output files through Prettier')
+  .description(
+    'Inline resources collects component templateUrl and styleUrls content and includes them in the @Component class decorator.'
+  )
   .action(ngInlineResourcesAction);
 
 program
@@ -118,5 +124,11 @@ program
   .option('-a --import-all', 'Import all modules, directives, and components from metadata file')
   .description('Generate NgModule from a collection of components and directives')
   .action(ngGenerateModuleAction);
+
+program
+  .command('ng-generate-collection-pipeline-config')
+  .option('-o --output <output>', 'Output filepath to write collection pipeline config to.')
+  .description('Generate collection pipeline file used for curating contents of metadata file.')
+  .action(ngGenerateCollectionPipelineConfig);
 
 program.parse(process.argv);

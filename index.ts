@@ -36,6 +36,7 @@ import { action as wrapComponentinNamespaceTransformAction } from './lib/command
 
 // Ng Collection Pipeline Actions
 import { action as ngGenerateCollectionPipelineConfig } from './lib/commands/ng-generate-collection-pipeline-config.command';
+import { action as ngTestCollectionPipelineConfig } from './lib/commands/ng-test-collection-pipeline-config.command';
 
 const packageJSON = fileUtil.loadJSONFile('package.json');
 program.version(packageJSON.version);
@@ -128,7 +129,14 @@ program
 program
   .command('ng-generate-collection-pipeline-config')
   .option('-o --output <output>', 'Output filepath to write collection pipeline config to.')
+  .option('-d --outdir <outDir>', 'Output directory name to write metadata files to.')
+  .option('-l --label <label>', 'Label for first pipeline in group')
   .description('Generate collection pipeline file used for curating contents of metadata file.')
   .action(ngGenerateCollectionPipelineConfig);
+
+program
+  .command('ng-test-collection-pipeline-config <filepath> <label>')
+  .description('Output file list from collection pipeline.')
+  .action(ngTestCollectionPipelineConfig);
 
 program.parse(process.argv);

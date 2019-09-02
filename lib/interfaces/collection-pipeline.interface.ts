@@ -8,13 +8,21 @@ export type Filepath = string;
 // QUESTION (ryan): Should developers be able to include a relative file path
 //   for any of these interfaces (IConfig level, IIncludes level, IExcludes level?)
 
+//
+
+export interface ICollectionGroup {
+  version: string;
+  outDir: string;
+  pipelines: IPipeline[];
+}
+
 /**
  * IConfig resolution priority
  * 1. Includes builds the collection
  * 2. Excludes trim down the collection
  */
-export interface IConfig {
-  output: Filepath;
+export interface IPipeline {
+  label: string;
   includes: IIncludes;
   excludes?: IExcludes;
   commands?: ICommands;
@@ -25,6 +33,15 @@ export interface IConfig {
  *  - Resolved globs
  *  - All .ts files in a directory (recursive)
  *  - All specific .ts files
+ *
+ * NOTE (ryan): Explicitly included files should have the highest
+ * level of precedence. Precedence order:
+ *  1. IIncludes Files
+ *  2. IExcludes Files
+ *  3. IExcludes TSQueries
+ *  4. IExcludes Directory content
+ *  5. IExcludes Glob files
+ *  6. IIncludes remainder
  */
 export interface IIncludes {
   globs?: string[];

@@ -11,6 +11,9 @@
   "bin": {
     "ngm": "./dist/index.js"
   },
+  "files": [
+    "stubs/**/*.ts"
+  ],
   "keywords": [
     "angular",
     "typescript",

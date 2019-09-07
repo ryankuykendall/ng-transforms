@@ -10,6 +10,7 @@ import {
 } from './../interfaces/collection-pipeline.interface';
 import * as fileutil from './../utils/file.util';
 import logger from './logger.util';
+import { tsquery } from '@phenomnomnominal/tsquery';
 
 export const generateCollectionGroupStub = (
   version: string,
@@ -90,6 +91,10 @@ export class CollectionPipeline {
     return Array.from(this._includes);
   }
 
+  get explicitIncludes(): Filepath[] {
+    return Array.from(this._explicitIncludesFiles);
+  }
+
   get excludes(): Filepath[] {
     return Array.from(this._excludes);
   }
@@ -108,14 +113,8 @@ export class CollectionPipeline {
           return path.join(this.dirname, pattern);
         })
         .forEach((pattern: string) => {
-          glob(pattern, (error, matches) => {
-            if (error) {
-              logger.error(error.name, error.message, error.stack);
-            } else {
-              matches.forEach((match: string) => {
-                members.push(match as Filepath);
-              });
-            }
+          glob.sync(pattern).forEach((match: string) => {
+            members.push(match as Filepath);
           });
         });
     }
@@ -134,14 +133,8 @@ export class CollectionPipeline {
           return directoryToTsFilePattern(dir);
         })
         .forEach((pattern: string) => {
-          glob(pattern, (error, matches) => {
-            if (error) {
-              logger.error(error.name, error.message, error.stack);
-            } else {
-              matches.forEach((match: string) => {
-                members.push(match as Filepath);
-              });
-            }
+          glob.sync(pattern).forEach((match: string) => {
+            members.push(match as Filepath);
           });
         });
     }
@@ -200,7 +193,7 @@ export class CollectionPipeline {
       const filesMembers: Filepath[] = this.getFilesMembers(excludes, 'excludes');
 
       [...globsMembers, ...directoriesMembers, ...filesMembers].forEach((filepath: Filepath) => {
-        this._includes.add(filepath);
+        this._excludes.add(filepath);
       });
     }
   }
@@ -222,8 +215,16 @@ export class CollectionPipeline {
        */
 
       const { tsqueries } = this.config.excludes;
-      tsqueries.forEach((tsquery: string) => {
-        //
+      this.members.forEach((filepath: Filepath) => {
+        const src: string = fs.readFileSync(filepath, fileutil.UTF8);
+        const ast = tsquery.ast(src);
+        tsqueries.forEach((selector: string) => {
+          const nodes = tsquery(ast, selector);
+          if (nodes.length > 0) {
+            // logger.info('TSQuery selector match for', selector, '\n\tremoving', filepath);
+            this._mergedCollections.delete(filepath);
+          }
+        });
       });
     }
   }

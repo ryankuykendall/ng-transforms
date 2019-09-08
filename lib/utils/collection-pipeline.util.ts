@@ -72,6 +72,14 @@ export class CollectionGroup {
   getPipeline(label: string): CollectionPipeline | undefined {
     return this._pipelineMap.get(label);
   }
+
+  get outDir(): string {
+    return this.config.outDir;
+  }
+
+  get pipelines(): CollectionPipeline[] {
+    return Array.from(this._pipelineMap.values());
+  }
 }
 
 export class CollectionPipeline {
@@ -80,30 +88,48 @@ export class CollectionPipeline {
   // Cache the explicitly included files
   private _explicitIncludesFiles: Set<Filepath> = new Set<Filepath>();
   private _mergedCollections: Set<Filepath> = new Set<Filepath>();
+  private _hasCollected = false;
+  private _isCollecting = false;
 
-  constructor(private config: IPipeline, public dirname: string) {
-    this.resolveIncludes();
-    this.resolveExcludes();
-    this.mergeCollections();
+  constructor(private config: IPipeline, public dirname: string) {}
+
+  private collect() {
+    if (!this._hasCollected && !this._isCollecting) {
+      this._isCollecting = true;
+      logger.warn('Collecting', this.label);
+      this.resolveIncludes();
+      this.resolveExcludes();
+      this.mergeCollections();
+      this._hasCollected = true;
+      this._isCollecting = false;
+    }
   }
 
   get includes(): Filepath[] {
+    this.collect();
     return Array.from(this._includes);
   }
 
   get explicitIncludes(): Filepath[] {
+    this.collect();
     return Array.from(this._explicitIncludesFiles);
   }
 
   get excludes(): Filepath[] {
+    this.collect();
     return Array.from(this._excludes);
   }
 
+  get label(): string {
+    return this.config.label;
+  }
+
   get members(): Set<Filepath> {
+    this.collect();
     return new Set<Filepath>(this._mergedCollections);
   }
 
-  getGlobsMembers(item: IIncludes | IExcludes): Filepath[] {
+  private getGlobsMembers(item: IIncludes | IExcludes): Filepath[] {
     const members: Filepath[] = [];
     if (item && item.globs) {
       item.globs
@@ -122,7 +148,7 @@ export class CollectionPipeline {
     return members;
   }
 
-  getDirectoriesMembers(item: IIncludes | IExcludes): Filepath[] {
+  private getDirectoriesMembers(item: IIncludes | IExcludes): Filepath[] {
     const members: Filepath[] = [];
     if (item && item.directories) {
       item.directories
@@ -142,7 +168,7 @@ export class CollectionPipeline {
     return members;
   }
 
-  getFilesMembers(item: IIncludes | IExcludes, errorHint: string): Filepath[] {
+  private getFilesMembers(item: IIncludes | IExcludes, errorHint: string): Filepath[] {
     const members: Filepath[] = [];
     if (item && item.files) {
       item.files
@@ -202,6 +228,9 @@ export class CollectionPipeline {
     Array.from(this._includes).forEach((filepath: Filepath) => {
       if (!this._excludes.has(filepath)) {
         this._mergedCollections.add(filepath);
+      } else if (this._explicitIncludesFiles.has(filepath)) {
+        logger.info('Merging explicitly included file', filepath);
+        this._mergedCollections.add(filepath);
       }
     });
 
@@ -216,13 +245,23 @@ export class CollectionPipeline {
 
       const { tsqueries } = this.config.excludes;
       this.members.forEach((filepath: Filepath) => {
+        const isExplicitInclude: boolean = this._explicitIncludesFiles.has(filepath);
         const src: string = fs.readFileSync(filepath, fileutil.UTF8);
         const ast = tsquery.ast(src);
         tsqueries.forEach((selector: string) => {
           const nodes = tsquery(ast, selector);
           if (nodes.length > 0) {
             // logger.info('TSQuery selector match for', selector, '\n\tremoving', filepath);
-            this._mergedCollections.delete(filepath);
+            if (!isExplicitInclude) {
+              this._mergedCollections.delete(filepath);
+            } else {
+              logger.warn(
+                'TSQuery select match for explicitly included file:',
+                filepath,
+                'matches',
+                selector
+              );
+            }
           }
         });
       });

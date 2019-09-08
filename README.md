@@ -91,33 +91,43 @@ $ npm run cli ng-metadata-collect <directory/file> -o <output-file-name>
 Pipeline:
 Includes => Excludes => Collection
 
-interface INgCollectionPipelineConfig
+interface ICollectionGroup and IPipeline
+
+Sample CollectionGroup for Angular Material Components
 
 ```
 {
-   "output": <outputFilepath>,
-   "includes": {
-      // Filesystem level inclusions, step 1
-      "globs": [<Array of globs>],
-      "directories": [<Array of directories>],
-      "files": [<Array of files>],
-   },
-   excludes: {
-       // Filesystem level exclusions, step 2
-      "globs": [<Array of globs>],
-      "directories": [<Array of directories>],
-      "files": [<Array of files>],
-      // File level exclusions, step 3
-      "tsqueries": [<Array of tsqueries>],
-   },
-   commands: {
-      "pre": [
-         <Array of commands to execute before>
-      ],
-      "post": [
-         <Array of commands to execute after that reference output>
-      ]
-   }
+  "outDir": "./ngm-out",
+  "version": "0.0.1",
+  "pipelines": [
+    {
+      "label": "default-pipeline",
+      "includes": {
+        "globs": [
+           "src/cdk/**/*.ts",
+           "src/cdk-experimental/**/*.ts"
+         ],
+        "directories": ["src/material"],
+        "files": ["src/youtube-player/youtube-player.ts"]
+      },
+      "excludes": {
+        "globs": [],
+        "directories": [
+           "src/cdk/schematics",
+           "src/material/schematics"],
+        "files": [],
+        "tsqueries": [
+          "ImportDeclaration[moduleSpecifier.text='@angular/core/testing']",
+          "ImportDeclaration[moduleSpecifier.text='@angular/cdk/testing']",
+          "ImportDeclaration[moduleSpecifier.text='protractor']"
+        ]
+      },
+      "commands": {
+        "pre": [],
+        "post": []
+      }
+    }
+  ]
 }
 ```
 

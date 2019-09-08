@@ -1,9 +1,6 @@
 import program from 'commander';
 import fs from 'fs';
 import path from 'path';
-import glob from 'glob';
-import * as fileutil from './../utils/file.util';
-import { ICollectionGroup } from './../interfaces/collection-pipeline.interface';
 import logger from './../utils/logger.util';
 import {
   loadCollectionGroupFromFilepath,
@@ -27,11 +24,11 @@ export const action = (filepath: string, label: string, cmd: program.Command) =>
 
   logger.info('Pipeline', label, 'in', pipeline.dirname, JSON.stringify(pipeline, null, 2));
   logger.newline();
-  logger.info('Includes', pipeline.includes);
+  logger.info('Includes', pipeline.includes.length, pipeline.includes);
   logger.newline();
-  logger.info('Explicit Includes', pipeline.explicitIncludes);
+  logger.info('Explicit Includes', pipeline.explicitIncludes.length, pipeline.explicitIncludes);
   logger.newline();
-  logger.info('Excludes', pipeline.excludes);
+  logger.info('Excludes', pipeline.explicitIncludes.length, pipeline.excludes);
   logger.newline();
   logger.info('Merged Members', pipeline.members.size, pipeline.members);
 };

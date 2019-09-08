@@ -35,8 +35,10 @@ import { action as componentToElementTransformAction } from './lib/commands/comp
 import { action as wrapComponentinNamespaceTransformAction } from './lib/commands/wrap-component-in-namespace-transform.command';
 
 // Ng Collection Pipeline Actions
+// TODO (ryan): Rename these files and aliases
 import { action as ngGenerateCollectionPipelineConfig } from './lib/commands/ng-generate-collection-pipeline-config.command';
 import { action as ngTestCollectionPipelineConfig } from './lib/commands/ng-test-collection-pipeline-config.command';
+import { action as collectionPipelineRun } from './lib/commands/collection-pipeline-run.command';
 
 const packageJSON = fileUtil.loadJSONFile('package.json');
 program.version(packageJSON.version);
@@ -83,7 +85,9 @@ program
   .command('ng-metadata-collect <dir>')
   .option('-o --output <output>', 'Output file name for metadata file')
   .option('-v --verbose', 'Verbosity level')
-  .description('Scans typescript files in a directory to pull out classes, interfaces, and enums')
+  .description(
+    'Scans Angular project directory or file to pull out NgModules, Directives, Components, Injectables, classes, interfaces, and enums'
+  )
   .action(ngMetadataCollectAction);
 
 program
@@ -127,7 +131,7 @@ program
   .action(ngGenerateModuleAction);
 
 program
-  .command('ng-generate-collection-pipeline-config')
+  .command('collection-pipeline-generate')
   .option('-o --output <output>', 'Output filepath to write collection pipeline config to.')
   .option('-d --outdir <outDir>', 'Output directory name to write metadata files to.')
   .option('-l --label <label>', 'Label for first pipeline in group')
@@ -135,8 +139,16 @@ program
   .action(ngGenerateCollectionPipelineConfig);
 
 program
-  .command('ng-test-collection-pipeline-config <filepath> <label>')
+  .command('collection-pipeline-test <filepath> <label>')
   .description('Output file list from collection pipeline.')
   .action(ngTestCollectionPipelineConfig);
+
+program
+  .command('collection-pipeline-run <filepath>')
+  .option('-l --label <label>', 'Label of pipeline to process')
+  .description(
+    'Collects Angular project metadata based on the pipelines defined in a collection group file.'
+  )
+  .action(collectionPipelineRun);
 
 program.parse(process.argv);

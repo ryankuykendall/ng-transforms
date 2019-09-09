@@ -1,12 +1,12 @@
 import program from 'commander';
 import fs from 'fs';
 import path from 'path';
-import logger from './../utils/logger.util';
+import logger from '../utils/logger.util';
 import {
   loadCollectionGroupFromFilepath,
   CollectionGroup,
   CollectionPipeline,
-} from './../utils/collection-pipeline.util';
+} from '../utils/collection-pipeline.util';
 
 export const action = (filepath: string, label: string, cmd: program.Command) => {
   const groupFilepath = path.resolve(filepath);

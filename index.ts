@@ -35,9 +35,8 @@ import { action as componentToElementTransformAction } from './lib/commands/comp
 import { action as wrapComponentinNamespaceTransformAction } from './lib/commands/wrap-component-in-namespace-transform.command';
 
 // Ng Collection Pipeline Actions
-// TODO (ryan): Rename these files and aliases
-import { action as ngGenerateCollectionPipelineConfig } from './lib/commands/ng-generate-collection-pipeline-config.command';
-import { action as ngTestCollectionPipelineConfig } from './lib/commands/ng-test-collection-pipeline-config.command';
+import { action as collectionPipelineGenerate } from './lib/commands/collection-pipeline-generate.command';
+import { action as collectionPipelineTest } from './lib/commands/collection-pipeline-test.command';
 import { action as collectionPipelineRun } from './lib/commands/collection-pipeline-run.command';
 
 const packageJSON = fileUtil.loadJSONFile('package.json');
@@ -136,12 +135,12 @@ program
   .option('-d --outdir <outDir>', 'Output directory name to write metadata files to.')
   .option('-l --label <label>', 'Label for first pipeline in group')
   .description('Generate collection pipeline file used for curating contents of metadata file.')
-  .action(ngGenerateCollectionPipelineConfig);
+  .action(collectionPipelineGenerate);
 
 program
   .command('collection-pipeline-test <filepath> <label>')
   .description('Output file list from collection pipeline.')
-  .action(ngTestCollectionPipelineConfig);
+  .action(collectionPipelineTest);
 
 program
   .command('collection-pipeline-run <filepath>')

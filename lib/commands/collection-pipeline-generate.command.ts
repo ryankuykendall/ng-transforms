@@ -6,7 +6,7 @@ import * as fileutil from '../utils/file.util';
 import { ICollectionGroup } from '../interfaces/collection-pipeline.interface';
 import logger from '../utils/logger.util';
 import { generateCollectionGroupStub } from '../utils/collection-pipeline.util';
-import { VERSION } from './../utils/package.util';
+import { VERSION } from '../utils/package.util';
 
 const DEFAULT_LABEL = 'default-pipeline';
 const DEFAULT_OUT_DIR = './ngm-out';

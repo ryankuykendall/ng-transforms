@@ -10,26 +10,26 @@ Augment build time strategy with run-time component library strategy using Angul
 
 ## Setup
 
-```
-$ npm i
+```zsh
+npm i
 ```
 
 ## Building command-line tools
 
-```
-$ npm run build
+```zsh
+npm run build
 ```
 
 ## Seeing a list of all of the available commands
 
-```
+```zsh
 npm run cli --help
 ```
 
 ## Executing command-line tools
 
-```
-$ npm run cli <command> <arguments>
+```zsh
+npm run cli <command> <arguments>
 ```
 
 ## A note about directories
@@ -49,25 +49,25 @@ In the specified directory, get all arrow functions defined in a variable statem
 
 For testing purposes, assumes that the developer has generated CSS from SCSS files:
 
-```
+```zsh
 sass mocks:bazel-out/mocks
 ```
 
 _On project mocks directory:_
 
-```
-$ ./dist/index.js ng-inline-resources mocks/components -R --src . --build ./bazel-out -p
+```zsh
+./dist/index.js ng-inline-resources mocks/components -R --src . --build ./bazel-out -p
 ```
 
 _On locally cloned Angular/Material src:_
 
-```
-$ ./dist/index.js ng-inline-resources ~/ng-components/components/src -R --src ~/ng-components/components/src --build ~/ng-components/components/bazel-out -p
+```zsh
+./dist/index.js ng-inline-resources ~/ng-components/components/src -R --src ~/ng-components/components/src --build ~/ng-components/components/bazel-out -p
 ```
 
 _In a build environment where SCSS and template files are outputted into separate build directory roots_
 
-```
+```zsh
 ./dist/index.js ng-inline-resources ~/ng-components/components/src -R -p \
    --src ~/ng-components/components/src \
    --template-build ~/ng-components/components/bazel-out \
@@ -76,14 +76,14 @@ _In a build environment where SCSS and template files are outputted into separat
 
 ### Collecting Angular Directive, Component, and Module interface metadata by directory
 
-```
-$ npm run cli ng-metadata-collect <directory/file>
+```zsh
+npm run cli ng-metadata-collect <directory/file>
 ```
 
 Outputing the JSON metadata output to a file.
 
-```
-$ npm run cli ng-metadata-collect <directory/file> -o <output-file-name>
+```zsh
+npm run cli ng-metadata-collect <directory/file> -o <output-file-name>
 ```
 
 #### (Draft) Config file format for ng-collect-metadata
@@ -95,7 +95,7 @@ interface ICollectionGroup and IPipeline
 
 Sample CollectionGroup for Angular Material Components
 
-```
+```json
 {
   "outDir": "./ngm-out",
   "version": "0.0.1",
@@ -103,18 +103,13 @@ Sample CollectionGroup for Angular Material Components
     {
       "label": "default-pipeline",
       "includes": {
-        "globs": [
-           "src/cdk/**/*.ts",
-           "src/cdk-experimental/**/*.ts"
-         ],
+        "globs": ["src/cdk/**/*.ts", "src/cdk-experimental/**/*.ts"],
         "directories": ["src/material"],
         "files": ["src/youtube-player/youtube-player.ts"]
       },
       "excludes": {
         "globs": [],
-        "directories": [
-           "src/cdk/schematics",
-           "src/material/schematics"],
+        "directories": ["src/cdk/schematics", "src/material/schematics"],
         "files": [],
         "tsqueries": [
           "ImportDeclaration[moduleSpecifier.text='@angular/core/testing']",
@@ -133,44 +128,44 @@ Sample CollectionGroup for Angular Material Components
 
 ### Generating a key for an Angular project metadata file (useful for understanding the interfaces that can be queried for using JSON Query syntax in ng-metadata-query command)
 
-```
-$ npm run cli ng-metadata-key <metadata-file>
+```zsh
+npm run cli ng-metadata-key <metadata-file>
 ```
 
 ### Querying a Angular project metadata file with [json-query](https://github.com/mmckegg/json-query) (assumes output file from collect-ng-metadata)
 
-```
-$ npm run cli ng-metadata-query <query> <metadata-file>
+```zsh
+npm run cli ng-metadata-query <query> <metadata-file>
 ```
 
 Query for Directive filepath, identifier, and selector:
 
-```
-$ npm run cli ng-metadata-query 'directives:select(filepath,identifier,selector)' <metadata-file>
+```zsh
+npm run cli ng-metadata-query 'directives:select(filepath,identifier,selector)' <metadata-file>
 ```
 
 More examples coming soon!
 
 ### Query an Angular Project for AST Sub Trees
 
-```
-$ npm run cli query "SourceFile > VariableStatement ArrowFunction" <directory> --ancestor VariableStatement
+```zsh
+npm run cli query "SourceFile > VariableStatement ArrowFunction" <directory> --ancestor VariableStatement
 ```
 
 In the specified directory, get all decorators with the name 'Component.' Then ascend the ancestry to the associated class declaration and display the results.
 
-```
-$ npm run cli query "Decorator[expression.expression.escapedText=Component]" <directory> --ancestor ClassDeclaration
+```zsh
+npm run cli query "Decorator[expression.expression.escapedText=Component]" <directory> --ancestor ClassDeclaration
 ```
 
 Same as above, but in this case getting ClassDeclarations with the Directive decorator:
 
-```
-$ npm run cli query "Decorator[expression.expression.escapedText=Directive]" <directory> --ancestor ClassDeclaration
+```zsh
+npm run cli query "Decorator[expression.expression.escapedText=Directive]" <directory> --ancestor ClassDeclaration
 ```
 
 And NgModules:
 
-```
-$ npm run cli query "Decorator[expression.expression.escapedText=NgModule]" <directory> --ancestor ClassDeclaration
+```zsh
+npm run cli query "Decorator[expression.expression.escapedText=NgModule]" <directory> --ancestor ClassDeclaration
 ```

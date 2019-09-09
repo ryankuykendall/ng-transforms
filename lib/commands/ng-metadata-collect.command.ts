@@ -36,7 +36,7 @@ export const action = (dir: string, cmd: program.Command) => {
   const interfaces: dm.IRootMetadata = getRootMetadataStub();
 
   // TODO (ryan): Update this to stop using a transform to drive the visitor pattern.
-  const transformationResults = interfaceMatches.forEach(({ filepath, source, ast }) => {
+  const transformationResults = interfaceMatches.forEach(({ filepath, ast }) => {
     ts.transform(ast, [dm.collectMetadata(interfaces, filepath, dm.rootCollectorCallback)]);
   });
 

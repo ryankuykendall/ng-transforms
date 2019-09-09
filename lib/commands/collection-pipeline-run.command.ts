@@ -1,12 +1,23 @@
+import ts from 'typescript';
 import program from 'commander';
 import fs from 'fs';
 import path from 'path';
+import * as fileutil from './../utils/file.util';
 import logger from './../utils/logger.util';
 import {
   CollectionGroup,
   CollectionPipeline,
   loadCollectionGroupFromFilepath,
 } from './../utils/collection-pipeline.util';
+import {
+  IRootMetadata,
+  collectMetadata,
+  rootCollectorCallback,
+} from './../declaration-metadata/index.metadata';
+import { getRootMetadataStub } from '../declaration-metadata/root.metadata';
+import { tsquery } from '@phenomnomnominal/tsquery';
+
+// QUESTION (ryan): Would users want the ability to merge pipelines into a single result?
 
 export const action = (filepath: string, cmd: program.Command) => {
   const label: string | undefined = cmd.opts()['label'];
@@ -41,5 +52,26 @@ export const action = (filepath: string, cmd: program.Command) => {
   pipelines.forEach((pipeline: CollectionPipeline) => {
     const { label, members } = pipeline;
     logger.info('Processing pipeline', label, 'with', members.size, 'members');
+
+    // TODO (ryan): Next step, run pre commands if they exist!
+
+    const metadata: IRootMetadata = getRootMetadataStub();
+    Array.from(members)
+      .map(
+        (filepath: string): [string, ts.SourceFile] => {
+          const source: string = fs.readFileSync(filepath, fileutil.UTF8);
+          return [filepath, tsquery.ast(source, filepath)];
+        }
+      )
+      .forEach(([filepath, ast]) => {
+        ts.transform(ast, [collectMetadata(metadata, filepath, rootCollectorCallback)]);
+      });
+
+    const metadataOutput = JSON.stringify(metadata, null, 2);
+    const outputFilepath = path.join(outDirname, `${label}.metadata.json`);
+    fs.writeFileSync(outputFilepath, metadataOutput);
+    logger.success(`Writing ${label} pipeline metadata to`, outputFilepath);
+
+    // TODO (ryan): Next step, run post commands!
   });
 };

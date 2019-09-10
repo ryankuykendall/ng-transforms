@@ -5,11 +5,12 @@ import glob from 'glob';
 import * as fileutil from '../utils/file.util';
 import { ICollectionGroup } from '../interfaces/collection-pipeline.interface';
 import logger from '../utils/logger.util';
-import { generateCollectionGroupStub } from '../utils/collection-pipeline.util';
+import {
+  generateCollectionGroupStub,
+  DEFAULT_OUT_DIR,
+  DEFAULT_LABEL,
+} from '../utils/collection-pipeline.util';
 import { VERSION } from '../utils/package.util';
-
-const DEFAULT_LABEL = 'default-pipeline';
-const DEFAULT_OUT_DIR = './ngm-out';
 
 export const action = (cmd: program.Command) => {
   const outputFilepath: string | undefined = cmd.opts()['output']

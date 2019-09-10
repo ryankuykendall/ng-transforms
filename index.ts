@@ -29,6 +29,7 @@ import { action as ngMetadataQueryAction } from './lib/commands/ng-metadata-quer
 import { action as ngInlineResourcesAction } from './lib/commands/ng-inline-resources.command';
 import { action as ngCreateComponentLookupAction } from './lib/commands/ng-create-component-lookup.command';
 import { action as ngGenerateModuleAction } from './lib/commands/ng-generate-module.command';
+import { action as ngGenerateComponentTemplates } from './lib/commands/ng-generate-component-templates.command';
 
 // Ng Transform Actions
 import { action as componentToElementTransformAction } from './lib/commands/component-to-element-transform.command';
@@ -128,6 +129,13 @@ program
   .option('-a --import-all', 'Import all modules, directives, and components from metadata file')
   .description('Generate NgModule from a collection of components and directives')
   .action(ngGenerateModuleAction);
+
+program
+  .command('ng-generate-component-templates <filepath>')
+  .option('-d --outdir <outDir>', 'Output directory to write template files to.')
+  .option('-m --mirror', 'Mirror directory structure used by components.')
+  .description('Generate component template stubs')
+  .action(ngGenerateComponentTemplates);
 
 program
   .command('collection-pipeline-generate')

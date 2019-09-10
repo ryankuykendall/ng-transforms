@@ -12,6 +12,9 @@ import * as fileutil from './../utils/file.util';
 import logger from './logger.util';
 import { tsquery } from '@phenomnomnominal/tsquery';
 
+export const DEFAULT_LABEL = 'default-pipeline';
+export const DEFAULT_OUT_DIR = './ngm-out';
+
 export const generateCollectionGroupStub = (
   version: string,
   outDir: string = 'ng-transform-out',

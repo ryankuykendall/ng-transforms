@@ -2,6 +2,7 @@ import ts from 'typescript';
 import { basicTypeMap, complexTypeMap, objectTypeMap, BasicType, DataType } from './base.metadata';
 import { IType } from './type.interface';
 import chalk from 'chalk';
+import logger from '../utils/logger.util';
 
 export const getTypeFromNode = (typeNode: ts.TypeNode): DataType => {
   // TODO (ryan): Investigate! Somehow in the compiled TS typeNode can be undefined!
@@ -93,7 +94,7 @@ export const collectTypeArgumentMetadata = (
       } else if (ts.isLiteralTypeNode(childTypeNode)) {
         childTypeArg.literal = childTypeNode.getText();
       } else {
-        console.warn(
+        logger.warn(
           'Pass through for childNodeType in',
           ts.SyntaxKind[parent.kind],
           ts.SyntaxKind[childTypeNode.kind],

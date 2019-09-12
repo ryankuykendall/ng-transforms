@@ -1,5 +1,6 @@
 import ts from 'typescript';
 import chalk from 'chalk';
+import { logger } from '../utils/logger.util';
 
 export const DEFAULT_MODULE_EXPORT_IDENTIFIER = '[default-export]';
 
@@ -131,10 +132,7 @@ export const collectMemberModifiers = (node: ts.Node): MemberModifier[] | undefi
           modifiers.push(MemberModifier.Static);
           break;
         default:
-          console.error(
-            chalk.yellowBright('Unrecognized member modifier'),
-            chalk.bgRed.white(ts.SyntaxKind[mod.kind])
-          );
+          logger.warn('Unrecognized member modifier', chalk.bgRed.white(ts.SyntaxKind[mod.kind]));
           break;
       }
     });

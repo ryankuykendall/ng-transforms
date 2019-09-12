@@ -12,6 +12,7 @@ import {
 import { getExpressionIdentifier, getName, INameableProxy } from '../utils/identifier.util';
 import { collectTypeArgumentMetadata } from './type.metadata';
 import { getPropertyAsExpression } from '../utils/object-literal-expression.util';
+import logger from '../utils/logger.util';
 
 // TODO (ryan): Break each case into a separate method.
 export const collectExpressionMetadata = (
@@ -50,8 +51,8 @@ export const collectExpressionMetadata = (
     case ts.SyntaxKind.TrueKeyword:
       return getTrueKeywordMetadata();
     default:
-      console.error(
-        chalk.yellow('Unhandled expression kind'),
+      logger.error(
+        'Unhandled expression kind',
         chalk.bgRed.white(ts.SyntaxKind[expression.kind]),
         chalk.bgBlue.white(expression.getFullText())
       );

@@ -42,11 +42,11 @@ export const action = (filepath: string, cmd: program.Command) => {
     const parsedCssSelectors: CssSelector[] = CssSelector.parse(selector.raw);
     parsedCssSelectors.forEach((css: CssSelector, index: number) => {
       logger.info(`${index}. Tag output for`, identifier, 'is', css.getMatchingElementTemplate());
-      const contentChildContents: string | undefined = generateContentChildContents(
+      const contentChildContents: string[] = generateContentChildContents(
         component.contentChildMembers,
         identifierMap
       );
-      const contentChildrenContents: string | undefined = generateContentChildrenContents(
+      const contentChildrenContents: string[] = generateContentChildrenContents(
         component.contentChildrenMembers,
         identifierMap
       );
@@ -60,8 +60,8 @@ export const action = (filepath: string, cmd: program.Command) => {
 const generateContentChildContents = (
   members: IContentChildMemberMetadata[] | undefined,
   lookup: Map<string, IComponentMetadata>
-): string | undefined => {
-  let contents: string[] = [];
+): string[] => {
+  const contents: string[] = [];
   if (members) {
     members.forEach((member: IContentChildMemberMetadata) => {
       const identifier = (member.selector as IType).type;
@@ -83,14 +83,14 @@ const generateContentChildContents = (
     });
   }
 
-  return contents.length > 0 ? contents.join('') : undefined;
+  return contents;
 };
 
 const generateContentChildrenContents = (
   members: IContentChildrenMemberMetadata[] | undefined,
   lookup: Map<string, IComponentMetadata>
-): string | undefined => {
-  let contents: string[] = [];
+): string[] => {
+  const contents: string[] = [];
   if (members) {
     members.forEach((member: IContentChildrenMemberMetadata) => {
       const identifier = (member.selector as IType).type;
@@ -112,5 +112,5 @@ const generateContentChildrenContents = (
     });
   }
 
-  return contents.length > 0 ? contents.join('') : undefined;
+  return contents;
 };

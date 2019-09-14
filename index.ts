@@ -47,6 +47,7 @@ import { action as wrapComponentinNamespaceTransformAction } from './lib/command
 // Ng Collection Pipeline Actions
 import { action as collectionPipelineGenerate } from './lib/commands/collection-pipeline-generate.command';
 import { action as collectionPipelineAdd } from './lib/commands/collection-pipeline-add.command';
+import { action as collectionPipelineClone } from './lib/commands/collection-pipeline-clone.command';
 import { action as collectionPipelineTest } from './lib/commands/collection-pipeline-test.command';
 import { action as collectionPipelineRun } from './lib/commands/collection-pipeline-run.command';
 
@@ -159,6 +160,11 @@ program
   .command('collection-pipeline-add <filepath> <label>')
   .description('Add a new pipeline with label to an existing collection file.')
   .action(collectionPipelineAdd);
+
+program
+  .command('collection-pipeline-clone <filepath> <src-label> <dest-label>')
+  .description('Clone existing pipeline from source label to destination label.')
+  .action(collectionPipelineClone);
 
 program
   .command('collection-pipeline-test <filepath> <label>')

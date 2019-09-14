@@ -46,7 +46,9 @@ export const action = (filepath: string, cmd: program.Command) => {
           };
         }
       ),
-    ].filter(({ selector }) => selector.selectors.length > 0);
+    ].filter(({ selector }) => {
+      return selector && selector.selectors && selector.selectors.length > 0;
+    });
 
     // logger.info('Lookup items', '\n', JSON.stringify(lookupItems, null, 2));
 
@@ -106,8 +108,8 @@ export const action = (filepath: string, cmd: program.Command) => {
     });
 
     logger.info('Selector types', Array.from(selectorItemTypes));
-    logger.info('tagNamePrefixes', Array.from(tagNamePrefixes));
     lookupMap.tagNamePrefixes = Array.from(tagNamePrefixes).sort();
+    logger.info('tagNamePrefixes', lookupMap.tagNamePrefixes);
 
     const jsonOutput = JSON.stringify(lookupMap, null, 2);
     if (outputFilepath) {

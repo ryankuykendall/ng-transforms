@@ -25,7 +25,11 @@ export const collectDirectiveDecoratorMetadata = (
   if (decorator && ts.isCallExpression(decorator.expression)) {
     const { expression } = decorator;
 
-    if (expression.arguments && ts.isObjectLiteralExpression(expression.arguments[0])) {
+    if (
+      expression.arguments &&
+      expression.arguments[0] &&
+      ts.isObjectLiteralExpression(expression.arguments[0])
+    ) {
       const properties = expression.arguments[0] as ts.ObjectLiteralExpression;
       const decoratorProperties = getObjectLiteralPropertiesAsMap<ComponentPropertyName>(
         properties

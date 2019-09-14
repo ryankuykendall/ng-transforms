@@ -88,6 +88,7 @@ export class CollectionGroup {
 export class CollectionPipeline {
   private _includes: Set<Filepath> = new Set<Filepath>();
   private _excludes: Set<Filepath> = new Set<Filepath>();
+  private _tsQueryExcludes: Set<Filepath> = new Set<Filepath>();
   // Cache the explicitly included files
   private _explicitIncludesFiles: Set<Filepath> = new Set<Filepath>();
   private _mergedCollections: Set<Filepath> = new Set<Filepath>();
@@ -130,6 +131,11 @@ export class CollectionPipeline {
   get members(): Set<Filepath> {
     this.collect();
     return new Set<Filepath>(this._mergedCollections);
+  }
+
+  get tsqueryExcludes(): Filepath[] {
+    this.collect();
+    return Array.from(this._tsQueryExcludes);
   }
 
   private getGlobsMembers(item: IIncludes | IExcludes): Filepath[] {
@@ -257,6 +263,7 @@ export class CollectionPipeline {
             // logger.info('TSQuery selector match for', selector, '\n\tremoving', filepath);
             if (!isExplicitInclude) {
               this._mergedCollections.delete(filepath);
+              this._tsQueryExcludes.add(filepath);
             } else {
               logger.warn(
                 'TSQuery select match for explicitly included file:',

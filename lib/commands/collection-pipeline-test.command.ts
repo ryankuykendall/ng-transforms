@@ -30,5 +30,7 @@ export const action = (filepath: string, label: string, cmd: program.Command) =>
   logger.newline();
   logger.info('Excludes', pipeline.explicitIncludes.length, pipeline.excludes);
   logger.newline();
+  logger.info('TSQuery Excludes', pipeline.tsqueryExcludes.length, pipeline.tsqueryExcludes);
+  logger.newline();
   logger.info('Merged Members', pipeline.members.size, pipeline.members);
 };

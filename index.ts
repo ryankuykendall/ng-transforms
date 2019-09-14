@@ -4,6 +4,15 @@ import program from 'commander';
 import * as fileUtil from './lib/utils/file.util';
 
 /**
+ * TODO (ryan): Do a pass at renaming these commands to provide better
+ *   consistency and simplification including choice of verbs, position of
+ *   verbs, etc. For example:
+ *
+ *   ng-create-component-lookup => component-lookup-generate
+ *   ng-metadata-query          => metadata-query
+ */
+
+/**
  * COMMAND IMPORTS
  */
 

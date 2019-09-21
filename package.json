@@ -12,7 +12,8 @@
     "ngm": "./dist/index.js"
   },
   "files": [
-    "stubs/**/*.ts"
+    "./package.json",
+    "./stubs/**/*.ts"
   ],
   "keywords": [
     "angular",

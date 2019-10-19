@@ -108,7 +108,12 @@ export const collectConstructorParameterMetadata = (
 
       // Handle Refs
       const parameterType = parameterTypeMap.get(identifier);
-      if (Object.values(ConstructorParameterRefType).includes(parameterType)) {
+      if (
+        parameterType &&
+        Object.values(ConstructorParameterRefType).includes(
+          parameterType as ConstructorParameterRefType
+        )
+      ) {
         metadata.refs.push({
           identifier,
           type: parameterType as ConstructorParameterRefType,

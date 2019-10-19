@@ -8,7 +8,8 @@ import {
   IIncludes,
   IExcludes,
 } from './../interfaces/collection-pipeline.interface';
-import * as fileutil from './../utils/file.util';
+import * as fileutil from './file.util';
+import { getBestParentDirectoryBeforeMagic } from './glob.util';
 import logger from './logger.util';
 import { tsquery } from '@phenomnomnominal/tsquery';
 
@@ -107,6 +108,39 @@ export class CollectionPipeline {
       this._hasCollected = true;
       this._isCollecting = false;
     }
+  }
+
+  directoriesForPriming(): Filepath[] {
+    const primeableDirectories: Filepath[] = [];
+    const { globs, directories, files } = this.config.includes;
+    if (globs) {
+      globs.forEach(pattern => {
+        if (glob.hasMagic(pattern)) {
+          const globRootDirname: string | undefined = getBestParentDirectoryBeforeMagic(pattern);
+          if (globRootDirname) {
+            primeableDirectories.push(globRootDirname);
+          }
+        } else {
+          primeableDirectories.push(path.dirname(pattern));
+        }
+      });
+    }
+
+    if (directories) {
+      directories.forEach(directory => {
+        primeableDirectories.push(directory);
+      });
+    }
+
+    if (files) {
+      files.forEach(file => {
+        primeableDirectories.push(path.dirname(file));
+      });
+    }
+
+    return Array.from(new Set(primeableDirectories)).map(directory => {
+      return path.join(this.dirname, directory);
+    });
   }
 
   get includes(): Filepath[] {

@@ -13,12 +13,26 @@ import {
   Selector,
 } from './ng-create-component-lookup.interface';
 
+// TODO (ryan):
+//   1. Update all commands to follow this pattern for flags
+//   2. Update command generator options in index.ts to use these as well
+enum CommandOptions {
+  OutputFilepath = 'output',
+  RelativeFilepathRoot = 'relative',
+  LightOutputMode = 'light',
+}
+
 export const action = (filepath: string, cmd: program.Command) => {
   const resolvedFilepath: string = path.resolve(filepath);
-  const outputFilepath: string | null = cmd.opts()['output']
-    ? path.resolve(cmd.opts()['output'])
+  const outputFilepath: string | null = cmd.opts()[CommandOptions.OutputFilepath]
+    ? path.resolve(cmd.opts()[CommandOptions.OutputFilepath])
     : null;
-  const relativeFilepathRoot = cmd.opts()['relative'] ? path.resolve(cmd.opts()['relative']) : null;
+  const relativeFilepathRoot = cmd.opts()[CommandOptions.RelativeFilepathRoot]
+    ? path.resolve(cmd.opts()[CommandOptions.RelativeFilepathRoot])
+    : null;
+  const lightOutput: boolean = cmd.opts()[CommandOptions.LightOutputMode]
+    ? cmd.opts()[CommandOptions.LightOutputMode]
+    : false;
 
   if (!fs.existsSync(resolvedFilepath)) {
     logger.error(`Cannot locate metadata file @`, filepath, resolvedFilepath);
@@ -98,8 +112,18 @@ export const action = (filepath: string, cmd: program.Command) => {
             lookupMap[selectorType][selectorName] = [];
           }
 
+          let lookupItemCopy = Object.assign({}, lookupItem);
+          if (lightOutput) {
+            lookupItemCopy = Object.assign({}, lookupItemCopy, {
+              selector: {
+                raw: lookupItemCopy.selector.raw,
+                selectors: undefined,
+              },
+            });
+          }
+
           lookupMap[selectorType][selectorName].push({
-            ...lookupItem,
+            ...lookupItemCopy,
             filepath: relativeFilepath,
             primary: item,
           });

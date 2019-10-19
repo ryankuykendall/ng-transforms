@@ -121,6 +121,7 @@ program
   .command('ng-create-component-lookup <filepath>')
   .option('-o --output <output>', 'Output filepath to write lookup to.')
   .option('-r --relative <relative>', 'Relative filepath to use to prune source filepath')
+  .option('-l --light', 'Generates light version of selector data')
   .description(
     'Generate lookup between Directive and Component selectors and their class definitions'
   )

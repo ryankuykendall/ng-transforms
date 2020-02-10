@@ -11,6 +11,7 @@ import {
   LookupItemType,
   ILookupSummaryRoot,
   Selector,
+  ILookupFilepaths,
 } from './ng-create-component-lookup.interface';
 
 // TODO (ryan):
@@ -21,6 +22,16 @@ enum CommandOptions {
   RelativeFilepathRoot = 'relative',
   LightOutputMode = 'light',
 }
+
+const updateFilepathUsingRelativeFilepathRoot = (
+  filepath: string,
+  relativeRoot: string | null
+): string => {
+  if (relativeRoot) {
+    return path.relative(relativeRoot, filepath);
+  }
+  return filepath;
+};
 
 export const action = (filepath: string, cmd: program.Command) => {
   const resolvedFilepath: string = path.resolve(filepath);
@@ -42,9 +53,16 @@ export const action = (filepath: string, cmd: program.Command) => {
     const lookupItems: ILookupItem[] = [
       ...metadata.directives.map(
         (directive: IDirectiveMetadata): ILookupItem => {
+          const filepaths: ILookupFilepaths = {
+            typescript: updateFilepathUsingRelativeFilepathRoot(
+              directive.filepath,
+              relativeFilepathRoot
+            ),
+          };
           return {
             type: LookupItemType.Directive,
             filepath: directive.filepath,
+            filepaths,
             identifier: directive.identifier,
             selector: directive.selector,
           };
@@ -52,9 +70,37 @@ export const action = (filepath: string, cmd: program.Command) => {
       ),
       ...metadata.components.map(
         (component: IComponentMetadata): ILookupItem => {
+          const filepaths: ILookupFilepaths = {
+            typescript: updateFilepathUsingRelativeFilepathRoot(
+              component.filepath,
+              relativeFilepathRoot
+            ),
+            template: updateFilepathUsingRelativeFilepathRoot(
+              component.filepath,
+              relativeFilepathRoot
+            ),
+            styles: [
+              updateFilepathUsingRelativeFilepathRoot(component.filepath, relativeFilepathRoot),
+            ],
+          };
+
+          // TODO (ryan): Resolve these based on the filepath.
+          if (component.templateUrl) {
+            filepaths.template = updateFilepathUsingRelativeFilepathRoot(
+              component.templateUrl,
+              relativeFilepathRoot
+            );
+          }
+          if (component.styleUrls) {
+            filepaths.styles = component.styleUrls.map((filepath: string) => {
+              return updateFilepathUsingRelativeFilepathRoot(filepath, relativeFilepathRoot);
+            });
+          }
+
           return {
             type: LookupItemType.Component,
             filepath: component.filepath,
+            filepaths,
             identifier: component.identifier,
             selector: component.selector,
           };
@@ -74,10 +120,10 @@ export const action = (filepath: string, cmd: program.Command) => {
 
     lookupItems.forEach((lookupItem: ILookupItem) => {
       const { type: itemType, filepath, identifier, selector } = lookupItem;
-      let relativeFilepath = filepath;
-      if (relativeFilepathRoot) {
-        relativeFilepath = path.relative(relativeFilepathRoot, filepath);
-      }
+      let relativeFilepath = updateFilepathUsingRelativeFilepathRoot(
+        filepath,
+        relativeFilepathRoot
+      );
 
       selector.selectors.forEach((selectorItems: Selector[]) => {
         selectorItems.forEach((item: Selector) => {

@@ -14,9 +14,18 @@ export interface ILookupSummaryRoot {
   [key: string]: any;
 }
 
+export interface ILookupFilepaths {
+  typescript: string;
+  template?: string;
+  styles?: string[];
+}
+
 export interface ILookupItem {
   type: LookupItemType;
+  // TODO (kuyk): Deprecate filepath in favor of a ILookupFilepaths member
+  //   Make sure to update all clients first!
   filepath: string;
+  filepaths: ILookupFilepaths;
   identifier: string;
   selector: ISelectorSet;
 }

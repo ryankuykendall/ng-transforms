@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import path from 'path';
 
 import {
   IComponentClassDecoratorMetadata,
@@ -27,6 +28,8 @@ import logger from './../utils/logger.util';
 export const collectComponentClassDecoratorMetadata = (
   node: ts.ClassDeclaration
 ): IComponentClassDecoratorMetadata => {
+  const filename: string = node.getSourceFile().fileName;
+  const dirname: string = path.dirname(filename);
   let animations;
   let changeDetection;
   let encapsulation;
@@ -101,6 +104,11 @@ export const collectComponentClassDecoratorMetadata = (
       // stylesUrl
       const styleUrlsInitializer = decoratorProperties.get(ComponentDecoratorProperty.StyleUrls);
       styleUrls = collectStyleUrlsMetadata(styleUrlsInitializer);
+      if (styleUrls && styleUrls.length > 0) {
+        styleUrls = styleUrls.map((filename: string) => {
+          return path.resolve(path.join(dirname, filename));
+        });
+      }
 
       // template
       const templateInitializer = decoratorProperties.get(ComponentDecoratorProperty.Template);
@@ -111,6 +119,9 @@ export const collectComponentClassDecoratorMetadata = (
         ComponentDecoratorProperty.TemplateUrl
       );
       templateUrl = collectTemplateUrlMetadata(templateUrlInitializer);
+      if (templateUrl) {
+        templateUrl = path.resolve(path.join(dirname, templateUrl));
+      }
 
       // viewProviders
       const viewProvidersInitializer = decoratorProperties.get(

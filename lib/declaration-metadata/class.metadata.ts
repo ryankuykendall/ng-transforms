@@ -57,9 +57,9 @@ const collectHeritageMetadata = (node: ts.ClassDeclaration): IHeritageMetadata |
     node.heritageClauses.forEach((clause: ts.HeritageClause) => {
       const clauseText = clause.getText();
       if (clauseText.match(/^extends/)) {
-        const extendsType = clause.types[0];
+        const [extendsType] = clause.types;
         const identifier = idUtil.getExpressionIdentifier(extendsType);
-        const composition = getTypeCompositionFromNode(clause.types[0]);
+        const composition = getTypeCompositionFromNode(extendsType);
         composition.type = identifier;
         heritage.extendsDef = composition;
       } else {

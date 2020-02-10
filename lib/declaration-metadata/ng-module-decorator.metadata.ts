@@ -29,7 +29,11 @@ export const collectNgModuleDecoratorMetadata = (
     let providers;
     let schemas;
 
-    if (expression.arguments && ts.isObjectLiteralExpression(expression.arguments[0])) {
+    if (
+      expression.arguments &&
+      expression.arguments[0] &&
+      ts.isObjectLiteralExpression(expression.arguments[0])
+    ) {
       const properties = expression.arguments[0] as ts.ObjectLiteralExpression;
       const decoratorProperties = getObjectLiteralPropertiesAsMap<NgModuleDecoratorProperty>(
         properties

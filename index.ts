@@ -169,18 +169,20 @@ program
   .action(collectionPipelineClone);
 
 program
-  .command('collection-pipeline-prime <filepath> <label>')
+  .command('collection-pipeline-prime <filepath>')
+  .option('-l --label <label>', 'Label of pipeline to prime')
   .description('Prime file list for collection pipeline.')
   .action(collectionPipelinePrime);
 
 program
-  .command('collection-pipeline-test <filepath> <label>')
+  .command('collection-pipeline-test <filepath>')
+  .option('-l --label <label>', 'Label of pipeline to test')
   .description('Output file list from collection pipeline.')
   .action(collectionPipelineTest);
 
 program
   .command('collection-pipeline-run <filepath>')
-  .option('-l --label <label>', 'Label of pipeline to process')
+  .option('-l --label <label>', 'Label of pipeline to run')
   .description(
     'Collects Angular project metadata based on the pipelines defined in a collection group file.'
   )

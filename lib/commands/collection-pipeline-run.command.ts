@@ -8,6 +8,7 @@ import {
   CollectionGroup,
   CollectionPipeline,
   loadCollectionGroupFromFilepath,
+  getPipelinesByLabelFromGroup,
 } from './../utils/collection-pipeline.util';
 import {
   IRootMetadata,
@@ -29,17 +30,17 @@ export const action = (filepath: string, cmd: program.Command) => {
   }
 
   const group: CollectionGroup = loadCollectionGroupFromFilepath(groupFilepath);
+  const pipelines: CollectionPipeline[] = !!label
+    ? getPipelinesByLabelFromGroup(group, label)
+    : group.pipelines;
 
-  // TODO (ryan): Add the ability to process all pipelines
-  let pipelines: CollectionPipeline[] = group.pipelines;
-  if (label) {
-    const pipeline: CollectionPipeline | undefined = group.getPipeline(label);
-    if (pipeline) {
-      pipelines = [pipeline];
-    } else {
+  if (pipelines.length === 0) {
+    if (label) {
       logger.error('No pipeline labeled', label, 'in group');
-      return 0;
+    } else {
+      logger.error('No pipelines found in group');
     }
+    return 0;
   }
 
   const dirname = path.dirname(filepath);
@@ -51,18 +52,17 @@ export const action = (filepath: string, cmd: program.Command) => {
 
   pipelines.forEach((pipeline: CollectionPipeline) => {
     const { label, members } = pipeline;
+    logger.newline();
     logger.info('Processing pipeline', label, 'with', members.size, 'members');
 
     // TODO (ryan): Next step, run pre commands if they exist!
 
     const metadata: IRootMetadata = getRootMetadataStub();
     Array.from(members)
-      .map(
-        (filepath: string): [string, ts.SourceFile] => {
-          const source: string = fs.readFileSync(filepath, fileutil.UTF8);
-          return [filepath, tsquery.ast(source, filepath)];
-        }
-      )
+      .map((filepath: string): [string, ts.SourceFile] => {
+        const source: string = fs.readFileSync(filepath, fileutil.UTF8);
+        return [filepath, tsquery.ast(source, filepath)];
+      })
       .forEach(([filepath, ast]) => {
         ts.transform(ast, [collectMetadata(metadata, filepath, rootCollectorCallback)]);
       });

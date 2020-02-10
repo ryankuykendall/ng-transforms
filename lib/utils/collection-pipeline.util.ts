@@ -312,3 +312,11 @@ export class CollectionPipeline {
     }
   }
 }
+
+export const getPipelinesByLabelFromGroup = (
+  group: CollectionGroup,
+  label: string
+): CollectionPipeline[] => {
+  const pipeline: CollectionPipeline | undefined = group.getPipeline(label);
+  return !!pipeline ? [pipeline] : [];
+};

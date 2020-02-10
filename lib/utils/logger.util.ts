@@ -25,6 +25,26 @@ export const error = (label: string, ...details: any[]) => {
   console.error(BOMB, errorTheme(label), ...details);
 };
 
+const megabytes = (size: number): string => {
+  return `${Math.round((size / 1024 / 1024) * 100) / 100} MB`;
+};
+
+export const memory = (label: string, ...details: any[]) => {
+  const used = process.memoryUsage();
+  console.log(
+    infoTheme(label),
+    ...details,
+    `
+  Memory Usage Summary:
+   - rss:       ${megabytes(used.rss)}
+   - heapTotal: ${megabytes(used.heapTotal)}
+   - heapUsed:  ${megabytes(used.heapUsed)}
+   - external:  ${megabytes(used.external)}
+
+   `
+  );
+};
+
 export const newline = (count: number = 1) => {
   console.log('\n'.repeat(count));
 };
@@ -34,6 +54,7 @@ export const logger = {
   success,
   warn,
   error,
+  memory,
   newline,
 };
 

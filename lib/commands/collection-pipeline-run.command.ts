@@ -50,10 +50,13 @@ export const action = (filepath: string, cmd: program.Command) => {
     fs.mkdirSync(outDirname);
   }
 
+  logger.memory('Memory check before processing pipelines');
+
   pipelines.forEach((pipeline: CollectionPipeline) => {
     const { label, members } = pipeline;
     logger.newline();
     logger.info('Processing pipeline', label, 'with', members.size, 'members');
+    logger.memory('Memory check before processing pipeline', label);
 
     // TODO (ryan): Next step, run pre commands if they exist!
 
@@ -66,6 +69,8 @@ export const action = (filepath: string, cmd: program.Command) => {
       .forEach(([filepath, ast]) => {
         ts.transform(ast, [collectMetadata(metadata, filepath, rootCollectorCallback)]);
       });
+
+    logger.memory('Memory check before stringifying metadata for', label);
 
     const metadataOutput = JSON.stringify(metadata, null, 2);
     const outputFilepath = path.join(outDirname, `${label}.metadata.json`);

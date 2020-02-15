@@ -217,22 +217,20 @@ export const action = (metadataFilepath: string, cmd: program.Command) => {
             lookupMap[selectorType][selectorName] = [];
           }
 
-          let lookupItemCopy = Object.assign({}, lookupItem);
+          let lookupItemCopy = Object.assign({}, lookupItem, {
+            primary: item,
+          });
           if (lightOutput) {
             lookupItemCopy = Object.assign({}, lookupItemCopy, {
               selector: {
                 raw: lookupItemCopy.selector.raw,
                 selectors: undefined,
               },
+              primary: undefined,
             });
           }
 
-          lookupMap[selectorType][selectorName].push({
-            ...lookupItemCopy,
-            filepath: relativeFilepath,
-            // TODO (ryan): Prune this in LightOutputMode
-            primary: item,
-          });
+          lookupMap[selectorType][selectorName].push(lookupItemCopy);
         });
       });
     });

@@ -113,11 +113,14 @@ export const action = (metadataFilepath: string, cmd: program.Command) => {
               relativeFilepathRoot
             ),
           };
+          let owner: OwnerDetail | undefined = ownerDetailsLookup.get(filepaths.typescript);
+
           return {
             type: LookupItemType.Directive,
             filepaths,
             identifier: directive.identifier,
             selector: directive.selector,
+            owner,
           };
         }
       ),

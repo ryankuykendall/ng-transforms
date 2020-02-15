@@ -6,6 +6,9 @@ export enum LookupItemType {
   Component = 'component',
 }
 
+export type OwnerDetail = { [key: string]: any };
+export type OwnerMergeLookup = { [key: string]: OwnerDetail };
+
 export interface ILookupSummaryRoot {
   tagNamePrefixes: string[];
   tag?: { [key: string]: ILookupSummaryItem[] };
@@ -28,6 +31,7 @@ export interface ILookupItem {
   filepaths: ILookupFilepaths;
   identifier: string;
   selector: ISelectorSet;
+  owner?: OwnerDetail;
 }
 
 export interface ILookupSummaryItem extends ILookupItem {

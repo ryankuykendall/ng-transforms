@@ -12,6 +12,8 @@ import {
   ILookupSummaryRoot,
   Selector,
   ILookupFilepaths,
+  OwnerMergeLookup,
+  OwnerDetail,
 } from './ng-create-component-lookup.interface';
 
 // TODO (ryan):
@@ -21,6 +23,7 @@ enum CommandOptions {
   OutputFilepath = 'output',
   RelativeFilepathRoot = 'relative',
   LightOutputMode = 'light',
+  MergeOwners = 'mergeOwners',
 }
 
 const updateFilepathUsingRelativeFilepathRoot = (
@@ -44,6 +47,15 @@ export const action = (filepath: string, cmd: program.Command) => {
   const lightOutput: boolean = cmd.opts()[CommandOptions.LightOutputMode]
     ? cmd.opts()[CommandOptions.LightOutputMode]
     : false;
+  const ownersFilepath: string | null = cmd.opts()[CommandOptions.MergeOwners]
+    ? path.resolve(cmd.opts()[CommandOptions.MergeOwners])
+    : null;
+
+  let ownerDetailsLookup: Map<string, OwnerDetail> = new Map<string, OwnerDetail>();
+  if (ownersFilepath) {
+    const owners = fileUtil.loadJSONFile(ownersFilepath) as OwnerMergeLookup;
+    ownerDetailsLookup = new Map<string, OwnerDetail>(Object.entries(owners));
+  }
 
   if (!fs.existsSync(resolvedFilepath)) {
     logger.error(`Cannot locate metadata file @`, filepath, resolvedFilepath);
@@ -75,10 +87,14 @@ export const action = (filepath: string, cmd: program.Command) => {
               component.filepath,
               relativeFilepathRoot
             ),
+            // By default assume the template is defined in the typescript
+            //   file.
             template: updateFilepathUsingRelativeFilepathRoot(
               component.filepath,
               relativeFilepathRoot
             ),
+            // By default assume the styles are defined in the typescript
+            //   file.
             styles: [
               updateFilepathUsingRelativeFilepathRoot(component.filepath, relativeFilepathRoot),
             ],
@@ -97,12 +113,15 @@ export const action = (filepath: string, cmd: program.Command) => {
             });
           }
 
+          let owner: OwnerDetail | undefined = ownerDetailsLookup.get(filepaths.typescript);
+
           return {
             type: LookupItemType.Component,
             filepath: component.filepath,
             filepaths,
             identifier: component.identifier,
             selector: component.selector,
+            owner,
           };
         }
       ),
@@ -171,6 +190,7 @@ export const action = (filepath: string, cmd: program.Command) => {
           lookupMap[selectorType][selectorName].push({
             ...lookupItemCopy,
             filepath: relativeFilepath,
+            // TODO (ryan): Prune this in LightOutputMode
             primary: item,
           });
         });

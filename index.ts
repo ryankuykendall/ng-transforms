@@ -123,6 +123,19 @@ program
   .option('-o --output <output>', 'Output filepath to write lookup to.')
   .option('-r --relative <relative>', 'Relative filepath to use to prune source filepath')
   .option('-l --light', 'Generates light version of selector data')
+  .option(
+    '-m --merge-owners <ownersFilepath>',
+    `Merges collection of owners from file (.json)
+
+    Owners file should conform to the following types:
+
+      type OwnerDetail = { [key: string]: any };
+      type OwnerMergeLookup = { [key: string]: OwnerDetail };
+
+    NOTE: Filepaths in owners file should have the same root as the 
+      relative filepath provided with --relative
+  `
+  )
   .description(
     'Generate lookup between Directive and Component selectors and their class definitions'
   )

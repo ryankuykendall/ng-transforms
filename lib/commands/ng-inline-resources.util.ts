@@ -16,10 +16,6 @@ import {
   IComponentInlineBuild,
 } from './../transforms/components/inline-resources.interface';
 
-const CSS_FILE_EXTENSION = 'css';
-const SCSS_FILE_EXTENSION = 'scss';
-const SCSS_REPLACE_REGEXP = /\.scss$/;
-
 export const generateComponentDecoratorRefs = (
   sourceFileMatches: IFileASTQueryMatch[]
 ): IComponentDecoratorRef[] => {
@@ -78,8 +74,8 @@ export const generateComponentInlineModel = (
     ? styleUrls.reduce((urlMap: Map<string, string>, url: string): Map<string, string> => {
         let value = url;
         const extension = path.extname(value).split('.')[1];
-        if (extension === SCSS_FILE_EXTENSION) {
-          value = value.replace(SCSS_REPLACE_REGEXP, `.${CSS_FILE_EXTENSION}`);
+        if (extension === fileUtil.SCSS_FILE_EXTENSION) {
+          value = value.replace(fileUtil.SCSS_REPLACE_REGEXP, `.${fileUtil.CSS_FILE_EXTENSION}`);
         }
         urlMap.set(url, value);
         return urlMap;

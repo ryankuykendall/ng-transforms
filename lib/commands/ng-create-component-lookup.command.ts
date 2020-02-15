@@ -36,8 +36,50 @@ const updateFilepathUsingRelativeFilepathRoot = (
   return filepath;
 };
 
-export const action = (filepath: string, cmd: program.Command) => {
-  const resolvedFilepath: string = path.resolve(filepath);
+const getVerifiedStyleFilepaths = (styleUrls: string[]): string[] => {
+  const styles: string[] = [];
+  styleUrls.forEach((filepath: string) => {
+    if (fs.existsSync(filepath)) {
+      styles.push(filepath);
+    } else {
+      /**
+       * With some build systems, like bazel that builds scss files separately,
+       *   the @Component styleUrls reference the build output rather than the
+       *   source file. Ensure that the file actually exists in source, and if
+       *   it does not, check for the existence of its complement.
+       */
+      let complementStyleFilepath: string | undefined;
+      let styleExtension = path.extname(filepath);
+      const baseFilename = filepath.split(styleExtension, 1);
+      // Trim off initial period
+      styleExtension = styleExtension.replace(/^\./, '');
+      switch (styleExtension) {
+        case fileUtil.CSS_FILE_EXTENSION:
+          complementStyleFilepath = `${baseFilename}.${fileUtil.SCSS_FILE_EXTENSION}`;
+          break;
+        case fileUtil.SCSS_FILE_EXTENSION:
+          complementStyleFilepath = `${baseFilename}.${fileUtil.CSS_FILE_EXTENSION}`;
+          break;
+        default:
+          break;
+      }
+
+      if (complementStyleFilepath && fs.existsSync(complementStyleFilepath)) {
+        styles.push(complementStyleFilepath);
+      } else {
+        logger.error(
+          `Both filepath and complementary filepath do not exist:`,
+          `\n - ${filepath}`,
+          `\n - ${complementStyleFilepath}`
+        );
+      }
+    }
+  });
+  return styles;
+};
+
+export const action = (metadataFilepath: string, cmd: program.Command) => {
+  const resolvedFilepath: string = path.resolve(metadataFilepath);
   const outputFilepath: string | null = cmd.opts()[CommandOptions.OutputFilepath]
     ? path.resolve(cmd.opts()[CommandOptions.OutputFilepath])
     : null;
@@ -58,7 +100,7 @@ export const action = (filepath: string, cmd: program.Command) => {
   }
 
   if (!fs.existsSync(resolvedFilepath)) {
-    logger.error(`Cannot locate metadata file @`, filepath, resolvedFilepath);
+    logger.error(`Cannot locate metadata file @`, metadataFilepath, resolvedFilepath);
     process.exit(0);
   } else {
     const metadata: IRootMetadata = fileUtil.loadJSONFile(resolvedFilepath);
@@ -73,7 +115,6 @@ export const action = (filepath: string, cmd: program.Command) => {
           };
           return {
             type: LookupItemType.Directive,
-            filepath: directive.filepath,
             filepaths,
             identifier: directive.identifier,
             selector: directive.selector,
@@ -100,7 +141,6 @@ export const action = (filepath: string, cmd: program.Command) => {
             ],
           };
 
-          // TODO (ryan): Resolve these based on the filepath.
           if (component.templateUrl) {
             filepaths.template = updateFilepathUsingRelativeFilepathRoot(
               component.templateUrl,
@@ -108,7 +148,8 @@ export const action = (filepath: string, cmd: program.Command) => {
             );
           }
           if (component.styleUrls) {
-            filepaths.styles = component.styleUrls.map((filepath: string) => {
+            const verifiedStyleFilepaths: string[] = getVerifiedStyleFilepaths(component.styleUrls);
+            filepaths.styles = verifiedStyleFilepaths.map((filepath: string) => {
               return updateFilepathUsingRelativeFilepathRoot(filepath, relativeFilepathRoot);
             });
           }
@@ -117,7 +158,6 @@ export const action = (filepath: string, cmd: program.Command) => {
 
           return {
             type: LookupItemType.Component,
-            filepath: component.filepath,
             filepaths,
             identifier: component.identifier,
             selector: component.selector,
@@ -138,9 +178,9 @@ export const action = (filepath: string, cmd: program.Command) => {
     };
 
     lookupItems.forEach((lookupItem: ILookupItem) => {
-      const { type: itemType, filepath, identifier, selector } = lookupItem;
+      const { type: itemType, filepaths, identifier, selector } = lookupItem;
       let relativeFilepath = updateFilepathUsingRelativeFilepathRoot(
-        filepath,
+        filepaths.typescript,
         relativeFilepathRoot
       );
 

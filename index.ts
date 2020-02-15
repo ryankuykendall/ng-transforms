@@ -119,7 +119,7 @@ program
   .action(ngMetadataQueryAction);
 
 program
-  .command('ng-create-component-lookup <filepath>')
+  .command('ng-create-component-lookup <metadataFilepath>')
   .option('-o --output <output>', 'Output filepath to write lookup to.')
   .option('-r --relative <relative>', 'Relative filepath to use to prune source filepath')
   .option('-l --light', 'Generates light version of selector data')

@@ -129,8 +129,17 @@ program
 
     Owners file should conform to the following types:
 
-      type OwnerDetail = { [key: string]: any };
-      type OwnerMergeLookup = { [key: string]: OwnerDetail };
+    export type OwnerDetail = { [key: string]: any };
+    export type OwnerMergeLookup = { [key: string]: OwnerDetail };
+    export interface IOwnerDetailCascade extends OwnerDetail {
+      filepathPrefix: string;
+    }
+    export interface IOwnerMetadata {
+      // NOTE (ryan): Provides a sorted list of fallback matches using
+      //   filepathPrefix for items that do not have a specific owner.
+      cascade: IOwnerDetailCascade[];
+      lookup: OwnerMergeLookup;
+    }
 
     NOTE: Filepaths in owners file should have the same root as the 
       relative filepath provided with --relative

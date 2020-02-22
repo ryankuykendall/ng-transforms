@@ -4,17 +4,16 @@ import * as fileUtil from './../utils/file.util';
 import path from 'path';
 import logger from './../utils/logger.util';
 import { IRootMetadata } from '../declaration-metadata/root.interface';
-import { IDirectiveMetadata, ISelectorSet } from '../declaration-metadata/directive.interface';
-import { IComponentMetadata } from '../declaration-metadata/component.interface';
+import { IDirectiveMetadata } from './../declaration-metadata/directive.interface';
+import { IComponentMetadata } from './../declaration-metadata/component.interface';
 import {
   ILookupItem,
   LookupItemType,
   ILookupSummaryRoot,
   Selector,
   ILookupFilepaths,
-  OwnerMergeLookup,
-  OwnerDetail,
 } from './ng-create-component-lookup.interface';
+import { LookupOwnerMetadata } from './../utils/lookup-owner-metadata.util';
 
 // TODO (ryan):
 //   1. Update all commands to follow this pattern for flags
@@ -93,11 +92,7 @@ export const action = (metadataFilepath: string, cmd: program.Command) => {
     ? path.resolve(cmd.opts()[CommandOptions.MergeOwners])
     : null;
 
-  let ownerDetailsLookup: Map<string, OwnerDetail> = new Map<string, OwnerDetail>();
-  if (ownersFilepath) {
-    const owners = fileUtil.loadJSONFile(ownersFilepath) as OwnerMergeLookup;
-    ownerDetailsLookup = new Map<string, OwnerDetail>(Object.entries(owners));
-  }
+  const ownerMetadata: LookupOwnerMetadata = LookupOwnerMetadata.createFromFilepath(ownersFilepath);
 
   if (!fs.existsSync(resolvedFilepath)) {
     logger.error(`Cannot locate metadata file @`, metadataFilepath, resolvedFilepath);
@@ -113,14 +108,13 @@ export const action = (metadataFilepath: string, cmd: program.Command) => {
               relativeFilepathRoot
             ),
           };
-          let owner: OwnerDetail | undefined = ownerDetailsLookup.get(filepaths.typescript);
 
           return {
             type: LookupItemType.Directive,
             filepaths,
             identifier: directive.identifier,
             selector: directive.selector,
-            owner,
+            owner: ownerMetadata.find(filepaths.typescript),
           };
         }
       ),
@@ -157,14 +151,12 @@ export const action = (metadataFilepath: string, cmd: program.Command) => {
             });
           }
 
-          let owner: OwnerDetail | undefined = ownerDetailsLookup.get(filepaths.typescript);
-
           return {
             type: LookupItemType.Component,
             filepaths,
             identifier: component.identifier,
             selector: component.selector,
-            owner,
+            owner: ownerMetadata.find(filepaths.typescript),
           };
         }
       ),
@@ -241,6 +233,12 @@ export const action = (metadataFilepath: string, cmd: program.Command) => {
     logger.info('Selector types', Array.from(selectorItemTypes));
     lookupMap.tagNamePrefixes = Array.from(tagNamePrefixes).sort();
     logger.info('tagNamePrefixes', lookupMap.tagNamePrefixes);
+    logger.info(
+      'leads',
+      Array.from(ownerMetadata.leadsSummary().entries()).sort(([, x], [, y]) => {
+        return x > y ? 1 : -1;
+      })
+    );
 
     const jsonOutput = JSON.stringify(lookupMap, null, 2);
     if (outputFilepath) {

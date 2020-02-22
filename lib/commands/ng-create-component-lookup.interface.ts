@@ -8,6 +8,16 @@ export enum LookupItemType {
 
 export type OwnerDetail = { [key: string]: any };
 export type OwnerMergeLookup = { [key: string]: OwnerDetail };
+export interface IOwnerDetailCascade extends OwnerDetail {
+  filepathPrefix: string;
+}
+
+export interface IOwnerMetadata {
+  // NOTE (ryan): Provides a sorted list of fallback matches using
+  //   filepathPrefix for items that do not have a specific owner.
+  cascade: IOwnerDetailCascade[];
+  lookup: OwnerMergeLookup;
+}
 
 export interface ILookupSummaryRoot {
   tagNamePrefixes: string[];

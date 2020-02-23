@@ -2,7 +2,7 @@
   "name": "ng-transforms",
   "version": "0.0.1",
   "description": "CLI tools for transforming Angular components and directives.",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
     "cli": "./dist/index.js",

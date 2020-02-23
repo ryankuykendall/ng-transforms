@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import program from 'commander';
-import * as fileUtil from './lib/utils/file.util';
+import { VERSION } from './lib/utils/package.util';
 
 /**
  * TODO (ryan): Do a pass at renaming these commands to provide better
@@ -52,8 +52,7 @@ import { action as collectionPipelinePrime } from './lib/commands/collection-pip
 import { action as collectionPipelineTest } from './lib/commands/collection-pipeline-test.command';
 import { action as collectionPipelineRun } from './lib/commands/collection-pipeline-run.command';
 
-const packageJSON = fileUtil.loadJSONFile('package.json');
-program.version(packageJSON.version);
+program.version(VERSION);
 
 program.command('dump-ast <dir>').action(dumpASTAction);
 program.command('dump-imports <dir>').action(dumpImportsAction);

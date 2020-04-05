@@ -10,10 +10,15 @@ export interface INamedBinding extends IHasIdentifier {
   propertyIdentifier?: string;
 }
 
+export interface INamespaceBinding extends IHasIdentifier {}
+export interface INamespaceImport extends IHasIdentifier {}
+
 export interface IImportDeclarationMetadata {
   moduleSpecifier: string;
   moduleResolution: ModuleResolution;
   filepath?: string;
   nodeModule?: string;
   namedBindings: INamedBinding[];
+  namespaceBinding?: INamespaceBinding;
+  namespaceImport?: INamespaceImport;
 }

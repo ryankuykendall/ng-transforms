@@ -6,6 +6,8 @@ import {
   IImportDeclarationMetadata,
   ModuleResolution,
   INamedBinding,
+  INamespaceBinding,
+  INamespaceImport,
 } from './import-declaration.interface';
 import { stripQuotes } from '../utils/string-literal.util';
 import { StatementType, DEFAULT_MODULE_EXPORT_IDENTIFIER } from './base.metadata';
@@ -59,6 +61,8 @@ const collectImportDeclarationMetadata = (
     nodeModule = moduleSpecifier;
   }
   const namedBindings: INamedBinding[] = collectNamedBindingsMetadata(node);
+  const namespaceBinding: INamespaceBinding | undefined = collectNamespaceBindingMetadata(node);
+  const namespaceImport: INamespaceImport | undefined = collectNamespaceImportMetadata(node);
 
   return {
     moduleSpecifier,
@@ -66,6 +70,8 @@ const collectImportDeclarationMetadata = (
     filepath,
     nodeModule,
     namedBindings,
+    namespaceBinding,
+    namespaceImport,
   };
 };
 
@@ -120,11 +126,6 @@ const collectNamedBindingsMetadata = (declaration: ts.ImportDeclaration): INamed
     const { namedBindings } = declaration.importClause;
     if (namedBindings) {
       switch (namedBindings.kind) {
-        case ts.SyntaxKind.NamespaceImport:
-          bindings.push({
-            identifier: namedBindings.name.getText(),
-          });
-          break;
         case ts.SyntaxKind.NamedImports:
           namedBindings.elements.forEach((element: ts.ImportSpecifier) => {
             const propertyIdentifier = element.propertyName && element.propertyName.getText();
@@ -143,6 +144,33 @@ const collectNamedBindingsMetadata = (declaration: ts.ImportDeclaration): INamed
   }
 
   return bindings;
+};
+
+const collectNamespaceBindingMetadata = (
+  declaration: ts.ImportDeclaration
+): INamespaceBinding | undefined => {
+  if (declaration.importClause && declaration.importClause.name) {
+    return {
+      identifier: declaration.importClause.name.getText(),
+    };
+  }
+  return;
+};
+
+const collectNamespaceImportMetadata = (
+  declaration: ts.ImportDeclaration
+): INamespaceImport | undefined => {
+  if (
+    declaration.importClause &&
+    declaration.importClause.namedBindings &&
+    ts.isNamespaceImport(declaration.importClause.namedBindings)
+  ) {
+    const identifier = declaration.importClause.namedBindings.name.getText();
+    return {
+      identifier,
+    };
+  }
+  return;
 };
 
 // TODO (ryan): Consolidate these into a reusable method.

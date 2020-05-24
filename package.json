@@ -32,17 +32,17 @@
     "@types/commander": "^2.12.2",
     "@types/glob": "^7.1.1",
     "@types/json-query": "^2.2.0",
-    "@types/node": "^12.11.1",
+    "@types/node": "^12.12.42",
     "chalk": "^2.4.2",
     "commander": "^3.0.2",
-    "css-what": "^3.2.0",
-    "glob": "^7.1.4",
+    "css-what": "^3.2.1",
+    "glob": "^7.1.6",
     "json-query": "^2.2.2",
-    "typescript": "^3.6.4"
+    "typescript": "^3.9.3"
   },
   "devDependencies": {
-    "@angular/compiler": "^8.2.11",
-    "@types/prettier": "^1.18.3",
-    "prettier": "^1.18.2"
+    "@angular/compiler": "^8.2.14",
+    "@types/prettier": "^1.19.1",
+    "prettier": "^1.19.1"
   }
 }

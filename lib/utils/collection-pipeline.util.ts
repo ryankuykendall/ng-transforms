@@ -11,6 +11,7 @@ import {
 import * as fileutil from './file.util';
 import { getBestParentDirectoryBeforeMagic } from './glob.util';
 import logger from './logger.util';
+import { findAllInDirectory, IFindResult } from './find.util';
 import { tsquery } from '@phenomnomnominal/tsquery';
 
 export const DEFAULT_LABEL = 'default-pipeline';
@@ -54,10 +55,6 @@ export const loadCollectionGroupFromFilepath = (filepath: string): CollectionGro
   const configRaw = fs.readFileSync(filepath, fileutil.UTF8);
   const config: ICollectionGroup = JSON.parse(configRaw) as ICollectionGroup;
   return new CollectionGroup(config, path.dirname(filepath));
-};
-
-export const directoryToTsFilePattern = (dirname: string): string => {
-  return path.join(dirname, '**', '*.ts');
 };
 
 export class CollectionGroup {
@@ -198,13 +195,14 @@ export class CollectionPipeline {
         .map(dir => {
           return path.isAbsolute(dir) ? dir : path.join(this.dirname, dir);
         })
-        .map((dir: string) => {
-          return directoryToTsFilePattern(dir);
-        })
-        .forEach((pattern: string) => {
-          glob.sync(pattern).forEach((match: string) => {
-            members.push(match as Filepath);
-          });
+        .forEach((dir: string) => {
+          const result: IFindResult = findAllInDirectory(dir);
+          const tsFiles: Filepath[] | undefined = result.categorized.get(
+            fileutil.NgExtname.Typescript
+          );
+          if (tsFiles) {
+            members.push(...tsFiles);
+          }
         });
     }
 

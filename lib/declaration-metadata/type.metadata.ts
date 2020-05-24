@@ -56,15 +56,17 @@ const getTypeArguments = (typeNode: ts.TypeReferenceNode): IType[] => {
     });
   }
 
-  if (ts.isIntersectionTypeNode(typeNode) || ts.isUnionTypeNode(typeNode)) {
-    typeNode.types.forEach(childTypeNode => {
-      argumentNodes.push(childTypeNode);
-    });
-  }
+  // INVESTIGAGE: The intersection 'TypeReferenceNode & IntersectionTypeNode' was reduced to 'never' because property 'kind' has conflicting types in some constituents
+  // if (ts.isIntersectionTypeNode(typeNode) || ts.isUnionTypeNode(typeNode)) {
+  //   typeNode.types.forEach((childTypeNode: ts.TypeNode) => {
+  //     argumentNodes.push(childTypeNode);
+  //   });
+  // }
 
-  if (ts.isParenthesizedTypeNode(typeNode)) {
-    argumentNodes.push(typeNode.type);
-  }
+  // INVESTIGAGE: The intersection 'TypeReferenceNode & ParenthesizedTypeNode' was reduced to 'never' because property 'kind' has conflicting types in some constituents.
+  // if (ts.isParenthesizedTypeNode(typeNode)) {
+  //   argumentNodes.push(typeNode.type);
+  // }
 
   return collectTypeArgumentMetadata(typeNode, argumentNodes);
 };

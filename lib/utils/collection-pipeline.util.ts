@@ -139,7 +139,7 @@ export class CollectionPipeline {
     }
 
     return Array.from(new Set(primeableDirectories)).map(directory => {
-      return path.join(this.dirname, directory);
+      return path.isAbsolute(directory) ? directory : path.join(this.dirname, directory);
     });
   }
 
@@ -196,7 +196,7 @@ export class CollectionPipeline {
     if (item && item.directories) {
       item.directories
         .map(dir => {
-          return path.join(this.dirname, dir);
+          return path.isAbsolute(dir) ? dir : path.join(this.dirname, dir);
         })
         .map((dir: string) => {
           return directoryToTsFilePattern(dir);

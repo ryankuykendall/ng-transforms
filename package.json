@@ -38,7 +38,7 @@
     "css-what": "^3.2.1",
     "glob": "^7.1.6",
     "json-query": "^2.2.2",
-    "typescript": "^3.9.3"
+    "typescript": "^3.9.9"
   },
   "devDependencies": {
     "@angular/compiler": "^8.2.14",

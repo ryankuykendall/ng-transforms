@@ -9,6 +9,7 @@ import { ITypeAliasMetadata } from './type-aliases.interface';
 import { IRootFunctionMetadata } from './function.interface';
 import { ISourceFileMetadata } from './source-file.interface';
 import { IInjectableMetadata } from './injectable.interface';
+import { IPipeMetadata } from './pipe.interface';
 
 // Instead of RootTypes, we should call these declarations
 // QUESTION (ryan): Should we be capturing exported functions/methods
@@ -23,6 +24,7 @@ export enum RootType {
   Interfaces = 'interfaces',
   Methods = 'methods',
   NgModules = 'ngModules',
+  Pipes = 'pipes',
   SourceFiles = 'sourceFiles',
   TypeAliases = 'typeAliases',
 }
@@ -60,4 +62,5 @@ export type RootMetadataType =
   | IInterfaceMetadata
   | IRootMethodMetadata
   | INgModuleMetadata
+  | IPipeMetadata
   | ITypeAliasMetadata;

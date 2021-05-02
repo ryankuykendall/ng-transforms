@@ -23,6 +23,8 @@ import { ISourceFileMetadata } from './source-file.interface';
 import { collectSourceFileMetadata } from './source-file.metadata';
 import { IInjectableMetadata } from './injectable.interface';
 import { collectInjectableMetadata } from './injectable.metadata';
+import { IPipeMetadata } from './pipe.interface';
+import { collectPipeMetadata } from './pipe.metadata';
 
 export { IRootMetadata, rootCollectorCallback };
 
@@ -51,6 +53,9 @@ export function collectMetadata<T extends ts.Node>(
         } else if (decUtil.hasDecoratorWithName(node, NgClassDecorator.NgModule)) {
           const metadata: INgModuleMetadata = collectNgModuleMetadata(node, filepath);
           callback.call(null, interfaces, RootType.NgModules, metadata);
+        } else if (decUtil.hasDecoratorWithName(node, NgClassDecorator.Pipe)) {
+          const metadata: IPipeMetadata = collectPipeMetadata(node, filepath);
+          callback.call(null, interfaces, RootType.Pipes, metadata);
         } else {
           const metadata: IClassMetadata = collectClassMetadata(node, filepath);
           callback.call(null, interfaces, RootType.Classes, metadata);

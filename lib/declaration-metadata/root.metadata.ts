@@ -12,6 +12,7 @@ export const getRootMetadataStub = (): IRootMetadata => {
     [RootType.Interfaces]: [],
     [RootType.Methods]: [],
     [RootType.NgModules]: [],
+    [RootType.Pipes]: [],
     [RootType.TypeAliases]: [],
   };
 };

@@ -15,6 +15,7 @@ export enum NgClassDecorator {
   Directive = 'Directive',
   Injectable = 'Injectable',
   NgModule = 'NgModule',
+  Pipe = 'Pipe',
 }
 
 export enum NgDirectiveClassMemberDecorator {

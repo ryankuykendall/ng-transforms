@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "cli": "./dist/index.js",
+    "install": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {

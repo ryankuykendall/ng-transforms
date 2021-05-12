@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "cli": "./dist/index.js",
-    "install": "tsc --project ./tsconfig.json",
+    "install": "tsc --project tsconfig.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
